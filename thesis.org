@@ -1,0 +1,994 @@
+#+PROPERTY: header-args:lisp :results replace :session
+#+PROPERTY: header-args:python :results none :session test :exports none
+
+#+COLUMNS: %25ITEM %TAGS %PRIORITY %TODO
+
+* LaTeX                                                            :noheading:
+#+TITLE: Online activity recognition through kernel methods
+#+AUTHOR: Evgeni Pavlidis
+
+#+LaTeX_CLASS: scrbook
+#+LaTeX_CLASS_OPTIONS: [11pt,a4paper,bibtotoc,idxtotoc,headsepline,footsepline,footexclude,BCOR12mm,DIV13,openany]
+#+LaTeX_CMD: xelatex
+
+# --- Packages
+#
+#+LaTeX_HEADER: \usepackage{pdfsync}
+#+LaTeX_HEADER: \usepackage{scrpage2}
+
+#+LaTeX_HEADER: \usepackage{hyperref}
+
+#+LaTeX_HEADER: \usepackage{palatino}
+#+LaTeX_HEADER: \usepackage{pifont}
+#+LaTeX_HEADER: \usepackage{rotating}
+#+LaTeX_HEADER: \usepackage{float}
+#+LaTeX_HEADER: \usepackage[utf8]{inputenc}
+#+LaTeX_HEADER: \usepackage{marvosym}
+
+#+LaTeX_HEADER: \usepackage{amsmath}
+#+LaTeX_HEADER: \usepackage{amsfonts}
+#+LaTeX_HEADER: \usepackage{amssymb}
+#+LaTeX_HEADER: \usepackage{textcomp}
+
+#+LaTeX_HEADER: \usepackage{makeidx}
+#+LaTeX_HEADER: \usepackage{subfigure}
+#+LaTex_HEADER: \usepackage{graphicx}
+
+#+LaTeX_HEADER: \usepackage{todonotes}
+
+
+# --- Options
+#
+#+LaTeX_HEADER: \pagestyle{scrheadings}
+
+# --- Table of Contents
+# 
+#+OPTIONS: toc:nil   
+#+TOC: headlines 2
+
+# --- Bibliography
+#
+#+BIBLIOGRAPHY: bibliography plain limit:t
+#+STYLE: &lt;link rel="stylesheet" type="text/css" href="css/org.c
+
+
+#+begin_latex
+\listoftodos
+#+end_latex
+                                                             
+
+* ToDo
+** Feature extraction routines (generic for different data sets)
+*** Use 2 angle repr for joints
+
+** Classification test suite
+
+
+
+
+** Cite
+*** software packages and tools used
+*** datasets
+** Check bibliography style and data!!!
+
+
+* Goal of the thesis
+** Online (active) learning of human activities
+Use gaussian processes to learn new activities in real time
+** Evaluate Gaussian processes against different ml algorithms for activity recognition
+Evaluate the performance of GPs in relation to the other solutions
+** Use only skeleton data 
+With the modern technologies (ms kinect sdk, primesense ...) it is possible to decouple skeleton tracking and learning
+
+\missingfigure{skeleton representation}
+
+** Notations and conventions
+Vectors bold /todo{conventions}
+
+* Related work
+** Histogram based approaches
+*** Motion history image 
+*** Motion energy image
+
+** Sung et al. ebib:sung_unstructured_2012
+*** Features: Skeleton data + HOG features of RGBD image and depth image 
+*** Naive classification: SVM
+*** Maximum entropy markov model
+Solved via max-flow/min-cut
+** RGB-D Camera-based Daily Living Activity Recognition ebib:zhang_rgb-d_2012
+*** Features: Structural and Spatial motion
+Feature capturing transition between two frames
+*** Bag of Features approach (historgram of features)
+*** Other: People identification (reidentification)
+** Learning Human Activities and Object Affordances from RGB-D Videos 
+*** Learning both: activities and object detection/affordance
+*** Using Markov Random Field and SVM for learing
+** Eigenjoints ebib:yang_effective_2013
+** GPDM
+In ebib:wang_gaussian_2005 the dynamics of the latent space is being modeled from time series data. In ebib:wang_gaussian_2008 this model is being used to model human motion by applying a GP-LVM to the high-dimensional mocap data and simultaneously learning the dynamic transition in the latent space:
+$$ x_{t_{k+1}} = f(x_{k}) $$
+$f(x)$ is being modeled by an gaussian process.
+
+This model was applied for activity recognition in ebib:jamalifar_3d_2012 where the classification is done through an SVM in the hyperparameter space.
+
+** Dynamic time warping
+** Software
+MATLAB - FGPLVM 
+Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
+- Emacs/Org-mode
+- IPython
+- SciPy/NumPy
+- GPy
+- mlpy
+
+
+** Other
+*** probabalistic PCA
+Tipping and Bishop, Journal of the Royal Statistical Society (1999)
+
+
+* Concepts
+** Machine Learning  
+*** Supervised learning
+Supervised learning includes all models which use labeled data for learning and inference. 
+
+There are two distinct cases:
+**** Regression
+ 
+**** Classification
+
+*** Unsupervised learning
+In unsupervised learning the algorithms tries to detect patterns in the unlabeled data. Pattern may be clusters of similar samples or a lower dimensional generative manifold. The last one is called Dimensionality Reduction. ebib:bishop_pattern_2006
+
+** Gaussian Processes
+A gaussian process can be seen as the baysean posterior consisting of the product of the a (gaussian) functional prior and the observed samples.??? Another view is a kernelized regression with infinite parameters. ebib:rasmussen_gaussian_2006
+
+A gaussian process is a non parametric model and is governed by the hyperparameters of the used kernel. It can be seen as a gaussian distribution over functions.
+
+*** Learning
+GPs hyperparameter learning by variational optimization (data fit term + cov. regularizer)
+$$ E(\theta) = \frac{1}{2}\log({K}) - \frac{y^T K^{-1} y}{2} $$
+
+*** Regression
+*** Advantages
+**** non parametric
+Because the model is not parametric it does not suffer from  
+
+**** probabilistic
+The hyperparameters can be interpreted. The lenghtscale controls how much neighboring points contribute to the covariance of the function. 
+
+**** nice for Baysean
+**** linear algebra operations (marginals and conditionals)
+*** Disadvantages
+**** Unimodal
+**** susceptible to outliers
+The student-t distribution is robust against outliers but is much harder to deal with.
+*** Classification
+Classifying with GPs is a little more involved, because of the discriminative function and the fact that the likelihood \todo{explain problems of GP classification right} is not a Gaussian. For this reason different models exist which try to approximate this likelihood.
+
+*** Algorithms
+**** Sparse GPs (IVM)
+
+
+** GP-LVM
+The GP-LVM performs a non-linear dimensionality reduction from an observed space$X$ to a latent space $Y$ ebib:lawrence_probabilistic_2005
+It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a gaussian prior for the mapping $f$. Technically it a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from observed space to one latent dimension. \todo{formulas etc.} 
+The model learns a (non-linear) mapping from latent space to observed space. This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a very strong latent variable model.
+
+\missingfigure{example GP-LVM, skeleton}
+
+
+
+*** TODO Back-constraints GP-LVM
+One problem with this model is that it does not preserve local distances in the latent space.This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $g_i(y_i) = x_i$ is introduced which constrains the points in latent space to be more near if they are also near in the observed space. Instead of optimizing directly on $X$ the back-constrained GP-LVM optimizes using the  mapping instead. 
+
+Having this back-constraints also gives us a mapping from observed space to latent space which can be used to project a new sample into the latent space without costly maximum likelihood estimates. 
+\missingfigure{example BCGPLVM}
+ 
+*** Bayesian GP-LVM
+An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $X$. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
+
+*** Discriminative GP-LVM
+Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using the GDA \todo{elaborate GDA} a prior is being enforced on the LVM which ensures that samples from one class are more clustered and different classes are more separated in the latent space. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
+
+*** Subspace GP-LVM
+
+*** Manifold Relevance Determination
+Combining the Subspace GP-LVM with the variational approach and the ARD kernel it is possible to learn the manifold \todo{explain MRD}.ebib:damianou_manifold_2012
+
+*** GP-LVM for human motion
+As the space of human motion is high-dimensional (spatio-temporal) 
+* Analysis
+** Observations
+- Difference between activity and action
+  Activities are composed of actions
+- Skeleton data is sufficient for classification (ebib:ibbt_does_????)
+** Approaches
+*** make the features invariant ebib:theodorakopoulos_pose-based_2014 
+- view invariant (pos rel to torso)
+- scale invariant (normalize length...)
+   ... time ?? invariant
+*** Discriminative Sequence BCGPLVM
+**** DTW between walking and walking backwards very big ...
+**** not taking temporal dimension into account
+*** GPDM
+**** approach to classify by hyperparameters not optimal
+*** VarGPDS
+**** very slow computation
+*** Classify by dynamics of the skeleton (this should bring good classification)
+**** GPDM can model the dynamics of the movement
+**** has good properties (gaussian processes)
+**** has intrinsic dim reduction
+**** ?? shared GP-LVM to model different activities in the same latent manifold ??
+** Problems and solutions
+*** limited sample data - probabilistic model + discriminative
+Probabilistic (and generative ??) models are more accurate using fewer samples, because they model the probability directly ...  
+*** high dimensional - dim reduction(gp-lvm)
+
+*** classification - BC GP-LVM + discriminative
+*** time series data - GPDM
+An can be modeled as a sequence of consecutive poses. Hence a dynamical model. By using a dynamical model classification becomes more discriminative. 
+*** confidence is important !!!
+Using a probabilistic model (especially gaussian processes) we also get a confidence which in turn can be used for active learning
+*** high dim. noise => GP-LVM is very robust because of the nature of optimization (far distance preserving instead of locality)
+** Assumtpions
+*** Skeleton tracking is correct and stable
+For the algorithm we assume that the skeleton extraction from RGBD data works as expected.
+*** Smooth skeleton transition !!!
+*** Correctly labeled samples (no outliers)
+** Ideas
+*** Presentation
+**** Black slides (important points)
+*** Model
+**** Take best three activites (uncertainty) with threshold
+**** SPENCER: can help for (head tracking (bounding box), and pose estimation)
+**** Use hand and/or head features
+***** Head direction is important
+***** Hand structure is very important for most tasks
+***** Object interrelation ???
+***** Use HOG for hands features only
+**** Bhattacharyya distance
+
+**** bag of features 
+- no time dependency
+- no online capable because of k-means clustering
+**** maximum entropy markov model
+- complex, performance not good
+**** GP-LVM
+- good to reduce the dimensionality
+- used in some papers
+**** Learn a m
+**** odel of a activity and compare it with the help of a covariance function
+*** Analogy LVM <-> marionettes
+** GPRF (gp regreesion flow) !!!!
+* Implementation
+** Datasets
+*** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
+
+Active learning using Gaussian Processes.
+We will use the "Cornell Activity Datasets (CAD-60 & CAD-120)"[fn:1] to learn and evaluate 
+the performance of an implementation of Gaussian Processes. 
+
+The data set s consist an sequence of frames which include: 
+- Image data
+- RGBD data
+- Skeleton information: (joint position and orientation)
+- annotated meta information (e.g. activity)
+
+** Classification
+*** Dataset management
+#+begin_src python
+import glob
+import os
+import numpy as np
+
+
+data_set_indices = []
+# indices of positions of first 11 joints (joints with orientation)
+# 9 ori + 1 conf   +   3 pos + 1 conf = 14 
+for joint in range(0,11):
+  for x in range(10,13):
+    data_set_indices.append(1 + joint*14 + x);
+
+# indices of hands and feet (no orientation)
+for joint in range(0,4):
+  for x in range(0,3):
+    data_set_indices.append(155 + joint*4 + x);
+        
+
+default_data_dir=os.getenv("HOME")+'/data/human_activities'
+
+      
+class DatasetPerson:
+
+  data_dir = "";
+  person = -1;
+  direcotory = "";
+  activity_label = dict();
+  classes = list();
+  activity = ''
+  data = None
+
+  def __init__(self, data_dir=default_data_dir, person=1):
+    self.data_dir = data_dir;
+    self.person = person;
+    self.directory = data_dir + '/data'+ str(person) + '/';
+
+    # read labels
+    with open(self.directory + '/activityLabel.txt') as f:
+      self.activity_label = dict([filter(None, x.rstrip().split(',')) for x in f if x != 'END\n']);
+
+    self.classes = list(set(self.activity_label.values()));
+    self.activity = self.activity_label.keys()[0]
+    self.load_activity(self.activity)
+
+
+  def load_activity(self, activity):
+    self.activity = activity
+    file_name = self.directory + activity + '.txt';
+    self.data = np.genfromtxt(file_name, delimiter=',', skip_footer=1);
+
+  def get_processed_data(self):
+    data = self.data[:, data_set_indices];
+
+    # take relative position of the joints (rel. to torso)
+    for row in data:
+      torso_position = row[6:9]
+      for joint in range(0, 15):
+        row[joint*3:joint*3+3] -= torso_position
+
+    return data
+
+  def get_pose(self, frame):
+    return Pose(self.data[frame])
+#+end_src
+
+*** Visualization
+**** Skeleton structure
+#+begin_src python
+LINKS = {'torso' : ['neck', 'left_shoulder', 'right_shoulder', 'left_hip', 'right_hip'],
+         'neck' : ['head'], 
+         'left_shoulder' : ['left_elbow'],
+         'right_shoulder' : ['right_elbow', 'left_shoulder'],
+           'right_elbow' : ['right_hand'], 
+           'left_elbow' : ['left_hand'], 
+           'left_hip' : ['left_knee', 'right_hip'], 
+           'right_hip' : ['right_knee'],
+           'left_knee' : ['left_foot'], 
+           'right_knee' : ['right_foot'],}
+
+
+
+JOINTS_WITH_ORIENTATION = ['head', 'neck', 'torso', 'left_shoulder', 'left_elbow', 
+                             'right_shoulder', 'right_elbow', 'left_hip', 'left_knee',
+                             'right_hip', 'right_knee']
+
+JOINTS_WITHOUT_ORIENTATION = ['left_hand', 'right_hand', 'left_foot', 'right_foot']
+
+JOINTS = JOINTS_WITH_ORIENTATION + JOINTS_WITHOUT_ORIENTATION
+
+
+#+end_src
+
+**** Pose data structures
+#+begin_src python
+import numpy
+
+class Joint:
+  position = None;
+  orientation = None;
+    
+  def __str__(self):
+    return "Joint[\n Position: %s,\n Orientation:\n %s ]" % (self.position, self.orientation)
+      
+
+def parse_joint(data):
+  joint = Joint();
+  if len(data) > 4:
+    joint.position = numpy.array(data[10:13]) / 1000;
+    joint.orientation = numpy.array(data[0:9]).reshape((3,3));
+  else:
+    joint.position = numpy.array(data[0:3]) / 1000;
+  return joint
+  
+
+class Pose:
+  joints = dict();
+   
+  def __init__(self, data):
+    pos = 1;
+
+    for joint_name in JOINTS_WITH_ORIENTATION:
+      joint = parse_joint(data[pos:pos+14]);
+      pos += 14;
+      self.joints[joint_name] = joint;
+
+    for joint_name in JOINTS_WITHOUT_ORIENTATION:
+      joint = parse_joint(data[pos:pos+4]);
+      pos += 4;
+      self.joints[joint_name]  = joint;
+#+end_src
+
+**** RVIZ visualization
+***** Node setup
+#+begin_src python
+import roslib;
+import rospy;
+import math;
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+
+topic = 'visualization_marker_array'
+publisher = rospy.Publisher(topic, MarkerArray)
+
+rospy.init_node('skeleton_pose_visualizer')
+
+#+end_src
+
+#+RESULTS:
+
+***** ROS messages
+#+begin_src python
+def create_joint_message(joint, id=0):  
+  marker = Marker()
+  marker.header.frame_id = "/skeleton"
+  marker.type = marker.SPHERE
+  marker.id = id
+  marker.action = marker.ADD
+  marker.pose.position.x = joint.position[0]
+  marker.pose.position.y = joint.position[1]
+  marker.pose.position.z = joint.position[2]
+  marker.scale.x = 0.05
+  marker.scale.y = 0.05
+  marker.scale.z = 0.05
+  marker.color.a = 1.0
+  marker.color.r = 1.0
+  marker.color.g = 1.0
+  marker.color.b = 0.0
+
+  return marker
+
+  
+from geometry_msgs.msg import Point
+
+def create_link_message(pose, id=0):
+
+  def pos2Point(joint):
+    return Point(joint.position[0], joint.position[1], joint.position[2]);
+
+  points = []
+  for jointName1 in LINKS.keys():
+    for jointName2 in LINKS[jointName1]:
+      joint1 = pose.joints[jointName1];
+      joint2 = pose.joints[jointName2];
+      points.append(pos2Point(joint1));
+      points.append(pos2Point(joint2));
+
+  marker = Marker()
+  marker.header.frame_id = "/skeleton"
+  marker.type = marker.LINE_LIST
+  marker.id = id
+  marker.action = marker.ADD
+  marker.scale.x = 0.02
+  marker.color.a = 1.0
+  marker.color.r = 1.0
+  marker.points = points
+
+  return marker
+
+
+  
+def create_pose_message(pose):
+  markerArray = MarkerArray()
+  id = 0
+  for joint in pose.joints.values():
+    markerArray.markers.append(create_joint_message(joint, id))
+    id += 1    
+    markerArray.markers.append(create_link_message(pose, id))
+
+  return markerArray
+
+#+end_src
+
+#+begin_src python
+def visualize_frame(frame, dataset_person=DatasetPerson()):
+  publisher.publish(create_pose_message(dataset_person.get_pose(frame)))
+
+
+import time
+
+def visualize_interval(start_frame=1, end_frame=1000, dataset_person=DatasetPerson()):
+  for frame in range(start_frame, end_frame):
+    visualize_frame(frame, dataset_person);
+    time.sleep(1.0/25.0)
+#+end_src
+
+** Discriminative Sequence Back-Constrained GP-LVM
+In the paper "Discriminative Sequence Back-Constrained GP-LVM for MOCAP Based Action Recognition"ebib:_discriminative_2013 the authors propose a method for classifying MOCAP actions. By using a similarity feature for the sequences in the observed space and constraining the optimization to preserve this measure the local distances between the sequences are transferred into the latent space. This has two advantages. First of all the sequences have a meaningful clustering in the latent space. Second by also learning the back-constraint it is possible to calculate the centroid of a sequence in the latent space directly without maximizing a likelihood. This in turn is being used to do real-time classification for actions. The mapping is defined as a linear combination of the DTW distance between every other sequence. For every latent dimension $q$ we have: 
+         $$ g_{q}(Y_s) = \sum_{m=1}^{S} a_{mq} k(Y_s,Y_m) $$
+where the similarity measure is $k(Y_s, Y_m) = \gamma e^{DTW(Y_s, Y_m)}$. This measure is to be preserved in the latent spaces. 
+        $$ g_q(Y_s) = \mu_{sq} = \frac{1}{L_s} \sum_{n \in J_s} x_{nq} $$
+
+Also by applying the Discriminative GP-LVM the clustering of similar actions and the distances of different actions is enhanced which allows for a better classification. Recognition is being done by applying the mapping above to the new sequence and using a SVM in the latent space.
+
+** Bag of Features
+#+begin_src dot :file figures/bag-of-features-approach.png
+   digraph pipeline {
+     label="pipeline";
+     rankdir=LR;
+
+     node [color=blue, shape=box];
+  
+     feature_extraction;
+     k_means;
+     vector_quantization;
+     centroids[shape=ellipse];
+
+     feature_extraction -> k_means -> vector_quantization -> centroids;
+
+     subgraph {
+        label =  "bag_of_features";
+     }     
+  }
+#+end_src
+
+#+RESULTS:
+[[file:figures/bag-of-features-approach.png]]
+
+See [fn:2]
+
+
+* LAB
+** gplvm
+#+begin_src python
+import numpy as np
+import string
+import matplotlib.pyplot as pb
+import GPy
+
+def learn_GPLVM(activity):
+  p = DatasetPerson();
+  p.load_activity(activity);
+  data = p.get_processed_data();
+  input_dim = 3
+  kern = GPy.kern.rbf(input_dim)
+  # kern = GPy.kern.periodic_exponential()
+  m = GPy.models.BCGPLVM(data, input_dim=input_dim, kernel=kern)
+
+  # initialize noise as 1% of variance in data
+  # m['noise'] = m.likelihood.Y.var()/100.
+  m.optimize('scg', messages=1, max_iters=1000)
+
+  return m
+#+end_src
+
+#+begin_src python
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
+def visualize_latent_model(model):
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+
+  xs = model.X[:,0]
+  ys = model.X[:,1]
+  zs = model.X[:,2]
+  ax.scatter(xs, ys, zs)
+
+  ax.set_xlabel('latent 1')
+  ax.set_ylabel('latent 2')
+  ax.set_zlabel('latent 3')
+
+  plt.show()
+
+#+end_src
+
+#+begin_src python
+import GPy
+#+end_src
+
+** Sequence constraint
+#+begin_src python
+import numpy as np
+from GPy.core.mapping import Mapping
+
+class SequenceMapping(Mapping):
+
+
+    def __init__(self, input_dim=1, output_dim=1, sequences=2, sequence_indices=[0]):
+        self.name = 'sequence_constraint'
+        Mapping.__init__(self, input_dim=input_dim, output_dim=output_dim)
+        self.num_params = self.output_dim*self.sequences
+        self.A = np.array((self.sequences, self.output_dim))
+        self.output_dim = output_dim
+        self.sequences = sequences
+        self.sequence_indices = sequence_indices
+        self.randomize()
+
+    def _get_param_names(self):
+        return sum([['A_%i_%i' % (n, d) for d in range(self.sequences)] for n in range(self.output_dim)], [])
+
+    def _get_params(self):
+        return np.hstack((self.A.flatten()))
+
+    def _set_params(self, x):
+        self.A = x[:self.sequences * self.output_dim].reshape(self.sequences, self.output_dim).copy()
+
+    def randomize(self):
+        self.A = np.random.randn(self.sequences, self.output_dim)/np.sqrt(self.sequences)
+
+    def f(self, X):
+        dtw_class = mlpy.Dtw()
+        
+        [[for s in range(self.sequences)] for q in range(self.output_dim)]
+
+        return exp()
+
+    def df_dtheta(self, dL_df, X):
+        self._df_dW = (dL_df[:, :, None]*X[:, None, :]).sum(0).T
+        return np.hstack((self._df_dW.flatten(), self._df_dbias))
+        
+    def df_dX(self, dL_df, X):
+        return (dL_df[:, None, :]*self.A[None, :, :]).sum(2) 
+    
+
+#+end_src
+
+#+begin_src python
+def dtw(sub1='35', motion1=['01'], sub2='36', motion2=['02']):
+    return mlpy.Dtw().compute(GPy.util.datasets.cmu_mocap(sub1,motion1)['Y'].flatten(), GPy.util.datasets.cmu_mocap(sub2,motion2)['Y'].flatten())
+#+end_src
+
+** Sandbox
+
+
+** Bibliography
+#+begin_latex   
+  \bibliographystyle{plain}
+  \bibliography{bibliography}
+#+end_latex
+
+
+* Unsorted                                                         :noexport:
+** Links
+- [[http://glowingpython.blogspot.de/2012/10/visualizing-correlation-matrices.html][visualizing a correlation matrix]]
+** Cites
+*** Simplicity
+Simplicity is a great virtue but it
+requires hard work to achieve it
+and education to appreciate it.
+And to make matters worse:
+complexity sells better.
+Edsger Wybe Dijkstra 
+
+Simplicity is the ultimate
+sophistication.
+Leonardo da Vinci
+
+* Deprecated                                                       :noexport:
+** Lisp
+*** Configuration
+**** Prerequisites
+***** Common lisp
+- sbcl
+- quicklisp
+***** System
+- ros (hydro)
+- gsl library
+
+**** Start roscore
+#+begin_src sh :results output :shebang "#!/bin/bash" :session test
+ roscore&
+#+end_src
+
+
+**** Common Lisp Initialization
+[[http://common-lisp.net/project/asdf/asdf/Configuring-ASDF.html][Configuring ASDF]]
+
+Install all ros related packages. e.g:
+#+begin_src sh
+ sudo apt-get install ros-hydro-roslisp*
+ sudo apt-get install ros-hydro-cl-*
+#+end_src
+
+
+We want to run common lisp ros code outside of catkin.
+Add the following two files:
+
+***** ~/.config/common-lisp/source-registry.conf.d/roslisp.conf
+#+begin_src lisp
+(:tree "/opt/ros/hydro/share/")
+#+end_src
+
+***** ~/.config/common-lisp/source-registry.conf.d/msgs.conf
+#+begin_src lisp
+(:tree "/opt/ros/hydro/share/common-lisp/ros/")
+#+end_src
+
+*** Visualization
+
+**** Lisp
+***** Common lisp packages Initialization
+#+begin_src lisp :session 
+  (ql:quickload "cl-ppcre")
+  (ql:quickload "gsll")
+  (ql:quickload "roslisp")
+  (ql:quickload "alexandria")
+
+#+end_src
+
+#+RESULTS:
+| alexandria |
+
+
+#+begin_src lisp  :session :results silent
+  ; making sure that roslisp is loaded
+  (asdf:operate 'asdf:load-op :roslisp)
+
+  ; making really sure that roslisp is loaded
+  (ros-load:load-system :roslisp)
+  (ros-load:load-system :cl-transforms)  
+  (ros-load:load-system :visualization_msgs-msg)
+#+end_src
+
+***** Utils
+****** Data set reading utils
+#+begin_src lisp :session
+  (defun read-file (path)
+    (let ((lines (make-array 1 :fill-pointer 0)))
+      (with-open-file (stream path)
+        (do ((line (read-line stream nil)
+                   (read-line stream nil)))
+            ((null line))
+          (vector-push-extend line lines)))
+      lines))
+#+end_src
+
+#+RESULTS:
+: READ-FILE
+
+
+#+begin_src lisp :session
+(defun read-frame (frame &optional (data *annotations*))
+    (mapcar #'read-from-string  (cl-ppcre:split "," (aref data frame))))
+#+end_src
+
+#+RESULTS:
+: READ-FRAME
+
+****** List -> multidimensional array (matrix)
+#+begin_src lisp :session
+(defun list->matrix (lst)
+           (let ((array (make-array '(3 3))))
+             (setf (aref array 0 0) (first lst))
+             (setf (aref array 0 1) (second lst))
+             (setf (aref array 0 2) (third lst))
+             (setf (aref array 1 0) (fourth lst))
+             (setf (aref array 1 1) (fifth lst))
+             (setf (aref array 1 2) (sixth lst))
+             (setf (aref array 2 0) (seventh lst))
+             (setf (aref array 2 1) (eighth lst))
+             (setf (aref array 2 2) (ninth lst))
+             array))
+#+end_src
+
+#+RESULTS:
+: LIST->MATRIX
+
+***** Data: Joint/Skeleton objects
+ #+begin_src lisp  :session
+   (defstruct joint
+     position 
+     orientation)
+   
+   (defstruct skeleton
+     frame
+     joints
+     links)
+   
+   (defmacro x-pos (joint)
+     `(first (joint-position ,joint)))
+   
+   (defmacro y-pos (joint)
+     `(second (joint-position ,joint)))
+   
+   (defmacro z-pos (joint)
+     `(third (joint-position ,joint)))
+#+end_src
+
+ #+RESULTS:
+ : Z-POS
+
+***** Function: Parse the data and create a skeleton object
+
+#+begin_src lisp :session 
+  
+  (defvar *links*  '((torso neck) (torso left_shoulder) (torso right_shoulder)
+                     (torso left_hip) (torso right_hip)  (neck head) 
+                     (left_shoulder left_elbow) (right_shoulder right_elbow)
+                     (right_elbow right_hand) (left_elbow left_hand)
+                     (right_shoulder left_shoulder)
+                     (left_hip left_knee) (right_hip right_knee)
+                     (left_knee left_foot) (right_knee right_foot)
+                     (left_hip right_hip)))
+  
+  (defvar *joints-with-orientation* '(head neck torso left_shoulder left_elbow 
+                          right_shoulder right_elbow left_hip left_knee
+                          right_hip right_knee))
+
+  (defvar *joints-without-orientation* '(left_hand right_hand left_foot right_foot))
+
+  (defvar *joints* (append *joints-with-orientation* *joints-without-orientation*))
+
+#+end_src
+
+#+RESULTS:
+: *JOINTS*
+
+
+#+begin_src lisp :session 
+  (defun create-joint-from-list (lst)
+    (make-joint
+     :orientation (list->matrix (subseq lst 0 9))
+     :position (subseq lst 10 14)))
+  
+  (defun create-skeleton-from-data (lst)
+    (let ((start 0))
+      (flet ((next-chunk (size)
+               (let ((result (subseq lst start (+ start size))))
+                 (setf start (+ start size ))
+                 result)))
+        (let ((frame (next-chunk 1))
+              (joints nil)
+              (links *links*))
+          (dolist (joint-name *joints-with-orientation*)
+            (push (cons joint-name (create-joint-from-list (next-chunk 14))) joints))
+          
+          (dolist (joint-name *joints-without-orientation*)
+            (push (cons joint-name (make-joint :position (next-chunk 4))) joints))
+          
+          (make-skeleton :frame frame :joints joints :links links)))))  
+#+end_src
+
+#+RESULTS:
+: CREATE-SKELETON-FROM-DATA
+
+***** Function: create ros messages
+
+#+begin_src lisp  :session
+  (defun create-joint-message (joint id)
+    (let ((pos (joint-position joint)))
+      (roslisp:make-message 
+       "visualization_msgs/Marker"
+       (stamp header) (roslisp:ros-time)
+       (frame_id header) "/skeleton" 
+       (id) id
+       (type)  (roslisp-msg-protocol:symbol-code
+                'visualization_msgs-msg:<marker>
+                :sphere)
+       (action) (roslisp-msg-protocol:symbol-code
+                 'visualization_msgs-msg:<marker>
+                 :add)
+       (x position pose) (/ (first pos) 1000)
+       (y position pose) (/ (second pos) 1000)
+       (z position pose) (/ (third pos) 1000)
+       (x scale) 0.03
+       (y scale) 0.03
+       (z scale) 0.03
+       (g color) 1.0
+       (a color) 1.0
+       (lifetime) 100)))
+#+end_src
+
+#+RESULTS:
+: CREATE-JOINT-MESSAGE
+
+#+begin_src lisp :session
+  (defun create-link-list-message (points id)
+    (roslisp:make-msg 
+     "visualization_msgs/Marker"
+     (stamp header) (roslisp:ros-time)
+     (frame_id header) "/skeleton" (id) id
+     (type)
+     (roslisp-msg-protocol:symbol-code
+      'visualization_msgs-msg:<marker>
+      :line_list)
+     (action)
+     (roslisp-msg-protocol:symbol-code
+      'visualization_msgs-msg:<marker>
+      :add)
+     (x scale) 0.01
+     (r color) 1.0
+     (a color) 1.0
+     (lifetime) 100
+     (points) points))
+  
+  (defun links->line-points (links joints)
+    (let ((points nil))
+      (mapcar 
+       (lambda (el)
+         (let ((p1 (joint-position (cdr (assoc (first el) joints))))
+               (p2 (joint-position (cdr (assoc (second el) joints)))))
+           (push (roslisp:make-msg "geometry_msgs/Point" 
+                                   :x (/ (first p1) 1000)
+                                   :y (/ (second p1) 1000)
+                                   :z (/ (third p1) 1000)) points)
+           (push (roslisp:make-msg "geometry_msgs/Point"
+                                   :x (/ (first p2) 1000)
+                                   :y (/ (second p2) 1000)
+                                   :z (/ (third p2) 1000)) points))) 
+       links)
+      (map 'vector #'identity points)))
+  
+#+end_src
+
+#+RESULTS:
+: LINKS->LINE-POINTS
+
+#+begin_src lisp :session
+      (defun create-skeleton-message (skeleton)
+        (let ((index 0) (markers 'nil))
+          (mapcar (lambda (el) 
+                    (push (create-joint-message (cdr el) index) markers)
+                    (incf index))
+                  (skeleton-joints skeleton))
+          
+          (push (create-link-list-message 
+                 (links->line-points 
+                  (skeleton-links skeleton) 
+                  (skeleton-joints skeleton))
+                 index) 
+                markers)
+          (roslisp:make-msg "visualization_msgs/MarkerArray" :markers
+                            (map 'vector #'identity markers))))
+#+end_src
+
+#+RESULTS:
+: CREATE-SKELETON-MESSAGE
+
+***** Visualize a frame
+
+#+begin_src lisp :session
+  (defun visualize-frame (frame &optional (data *annotations*) (pub *pub*))
+    (roslisp:publish pub 
+                     (create-skeleton-message (create-skeleton-from-data (read-frame frame data)))))
+#+end_src
+
+#+RESULTS:
+: VISUALIZE-FRAME
+
+#+begin_src lisp :session
+    (defun visualize-interval (start-frame end-frame &optional (data *annotations*) (pub *pub*) (sleep-time 0.05))
+      (loop for frame from start-frame to end-frame do
+        (progn
+          (visualize-frame frame data pub)
+          (sleep sleep-time))))
+#+end_src
+
+#+RESULTS:
+: VISUALIZE-INTERVAL
+
+**** Lisp: visualization test
+
+#+begin_src lisp :session
+  (ROSLISP:START-ROS-NODE "test")
+  (defvar *pub* (ROSLISP:ADVERTISE "visualization_marker_array" "visualization_msgs/MarkerArray"))
+  (defvar *annotations* (read-file "/work/Data/human_activities/data1/0512164529.txt"))
+
+  (visualize-interval 1 1000)
+#+end_src
+
+#+RESULTS:
+: NIL
+
+* Footnotes
+
+[fn:1] Human Activity Detection from RGBD Images, Jaeyong Sung, Colin Ponce, Bart Selman, Ashutosh Saxena. In AAAI workshop on Pattern, Activity and Intent Recognition (PAIR), 2011. 
+[fn:2] RGB-D Camera-based Daily Living Activity Recognition - Chenyang Zhang, Student Member, IEEE and Yingli Tian, Senior Member, IEEE
+
+
+
+
+
+
+
