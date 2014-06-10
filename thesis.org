@@ -84,7 +84,7 @@ Vectors bold /todo{conventions}
 
 * Related work
 ** Overview
-*** a survey on vision based action regocnition ebib:poppe_survey_2010
+*** a survey on vision based action recognition ebib:poppe_survey_2010
 *** machine vision for human activities: a survey ebib:turaga_machine_2008
 ** Histogram based approaches
 *** Motion history image 
@@ -120,7 +120,6 @@ Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
 - SciPy/NumPy
 - GPy
 - mlpy
-
 
 ** Other
 *** probabalistic PCA
@@ -261,6 +260,10 @@ For the algorithm we assume that the skeleton extraction from RGBD data works as
 **** odel of a activity and compare it with the help of a covariance function
 *** Analogy LVM <-> marionettes
 ** GPRF (gp regreesion flow) !!!!
+Many models which use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the problem remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to use GPRF as classification can be done using second order dynamics which should give better results. 
+
+This model is attractive for two reasons. First real-time classification of incomplete trajectories is possible. Second it is possible to do online learning by simply adding the new class as a new flow field to the pool of GPs. It is very difficult to adjust the other models for online learning, because of the problem that we can get stuck in a local minimum when optimizing the parameters of the GP.
+
 * Implementation
 ** Datasets
 *** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
@@ -515,22 +518,23 @@ Also by applying the Discriminative GP-LVM the clustering of similar actions and
 *** Sequence constraint
 #+begin_src python
 import numpy as np
+from mlpy import Dtw
 from GPy.core.mapping import Mapping
 
 class SequenceMapping(Mapping):
 
-
-    def __init__(self, Y, output_dim=1):
+    def __init__(self, Y, input_dim=1, output_dim=1):
         self.name = 'sequence_constraint'
         Mapping.__init__(self, input_dim=input_dim, output_dim=output_dim)
+        self.sequences = len(Y)
         self.num_params = self.sequences
         self.a = np.array(self.sequences)
-        self.sequences = len(Y)
         self.Y = Y
+        self.dtw = Dtw()
         self.randomize()
 
     def _get_param_names(self):
-        return sum('a_%i' % (s) for s in range(self.sequences))
+        return ['a_%i' % s for s in range (self.sequences)]
 
     def _get_params(self):
         return np.hstack((self.a.flatten()))
@@ -542,19 +546,129 @@ class SequenceMapping(Mapping):
         self.a = np.random.randn(self.sequences)/np.sqrt(self.sequences)
 
     def f(self, X):
-        dtw_class = mlpy.Dtw()
-        return sum([ a[s] * exp(dtw_class.compute(X, Y[s])) for s in range(self.sequences)])
+        return sum([ a[s] * exp(self.dtw.compute(X, Y[s])) for s in range(self.sequences)])
 
     def df_dtheta(self, dL_df, X):
-        self._df_da = (dL_df[:, :, None]*X[:, None, :]).sum(0).T
+        self._df_da = (dL_df[:, :, None]*[exp(self.dtw.compute(X,Y[s])) for s in range(self.sequences)] ).sum(0).T
         return self._df_da.flatten()
-    
-
 #+end_src
 
 #+begin_src python
 def dtw(sub1='35', motion1=['01'], sub2='36', motion2=['02']):
     return mlpy.Dtw().compute(GPy.util.datasets.cmu_mocap(sub1,motion1)['Y'].flatten(), GPy.util.datasets.cmu_mocap(sub2,motion2)['Y'].flatten())
+#+end_src
+
+*** Constraints
+#+begin_src python
+import numpy as np
+from ..mappings import Kernel
+from mlpy import Dtw
+
+
+class Constraints(Mapping):
+    """
+    Constraints for the GP-LVM optimization
+
+    :param Y: observed data
+    :type Y: np.ndarray
+
+    """
+    def __init__(self, Y, sequences, input_dim, output_dim=2):
+        self.sequences = sequences.append(Y.shape[0])
+        self.Y = Y
+        self.seq_num = len(sequences)
+        self.output_dim = output_dim
+        self.Lambda = np.array(self.seq_num, self.output_dim)
+        self.A = np.array(self.seq_num, self.output_dim)
+        self.dtw = Dtw()
+        self.randomize()
+
+    def _get_param_names(self): 
+        return sum([['Lambda_%i_%i' % (s, q) for q in range(output_dim)] for s in range(seq_num)], 
+                   [['A_%i_%i' % (s, q) for q in range (output_dim)] for s in range(seq_num)])
+
+    def _get_params(self):
+        return np.hstack((self.Lambda.flatten(), self.A.flatten()))
+
+    def _set_params(self, x):
+        self.Lambda = x[:self.seq_num*self.output_dim].reshape(self.seq_num, self.output_dim).copy()
+        self.A = x[:self.seq_num*self.output_dim].reshape(self.seq_num, self.output_dim).copy()
+
+    def randomize(self):
+        self.Lambda = nm.random.randn(self.seq_num, self.output_dim)/np.sqrt(self.seq_num+1)
+        self.A = nm.random.randn(self.seq_num, self.output_dim)/np.sqrt(self.seq_num+1)
+
+    def g(Y_s, q):
+        return sum(A[s,q] * exp(self.dtw.compute(Y_s, self.Y_s(s)) for s in range(seq_num)))
+
+    def Y_s(self, s):
+        return Y[sequences[s]:sequences[s+1]]
+
+    def X_s(self, X, s):
+        return X[sequences[s]:sequences[s+1]]
+
+    def df_dtheta(self, dl_df, X):
+        return sum([[g(Y_s(s) - np.mean(X_s(X,s))) for q in range(output_dim)] for s in range(seq_num)], [])
+
+    def df_dX(self, dl_df, X):
+        return []
+
+#+end_src
+
+
+*** Sequence back-constrained GP-LVM
+#+begin_src python
+
+import numpy as np
+from ..core import GP
+from ..models import GPLVM
+from ..mappings import Kernel
+
+
+class SeqBCGPLVM(GPLVM):
+    """
+    Sequence back-constrained Gaussian Process Latent Variable Model
+    
+    See paper:
+    Valsamis Ntouskos, Panagiotis Papadakis, Fiora Pirri:
+    Discriminative Sequence Back-constrained GP-LVM for MOCAP based Action Recognition
+
+
+    :param Y: observed data
+    :type Y: np.ndarray
+    :param input_dim: latent dimensionality
+    :type input_dim: int
+    :param init: initialisation method for the latent space
+    :type init: 'PCA'|'random'
+
+    """
+    def __init__(self, Y, input_dim, init='PCA', X=None, kernel=None, normalize_Y=False, seq_index):
+        
+        self.seq_index = seq_index
+        self.constraints = SeqConstraints(Y, seq_index)
+
+        GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
+        # use non-linear dim reduction method here
+        # self.X =
+
+    def _get_param_names(self):
+        return self.constraints._get_param_names() + GP._get_param_names(self)
+
+    def _get_params(self):
+        return np.hstack((self.constraints._get_params(), GP._get_params(self)))
+
+    def _set_params(self, x):
+        self.constraints._set_params(x[:self.mapping.num_params])
+        self.X = self.mapping.f(self.likelihood.Y)
+        GP._set_params(self, x[self.mapping.num_params:])
+
+    def _log_likelihood_gradients(self):
+        dL_df = self.kern.dK_dX(self.dL_dK, self.X)
+        dL_dtheta = self.constraints.df_dtheta(dL_df, self.likelihood.Y)
+        dL_dX = self.constraints.df_dX(dL_df, self.likelihood.Y)
+        return np.hstack((dL_dX.flatten(), dL_dtheta.flatten(), GP._log_likelihood_gradients(self)))
+
+
 #+end_src
 
 
