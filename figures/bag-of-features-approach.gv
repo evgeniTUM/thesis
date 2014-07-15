@@ -1,0 +1,18 @@
+digraph pipeline {
+	graph [label=pipeline, rankdir=LR];
+	node [label="\N", color=blue, shape=box];
+	graph [lp="301,13",
+		bb="0,0,602,62"];
+	{
+		graph [label=bag_of_features,
+			lp="",
+			bb=""];
+	}
+	feature_extraction [pos="73,44", width=2, height="0.5"];
+	k_means [pos="221,44", width="1.0556", height="0.5"];
+	vector_quantization [pos="374,44", width="2.1389", height="0.5"];
+	centroids [shape=ellipse, pos="545,44", width="1.5556", height="0.51389"];
+	feature_extraction -> k_means [pos="e,182.12,44 145.7,44 154.64,44 163.6,44 172.07,44"];
+	k_means -> vector_quantization [pos="e,296.3,44 259.61,44 267.86,44 276.91,44 286.18,44"];
+	vector_quantization -> centroids [pos="e,488.33,44 451.99,44 460.7,44 469.51,44 478.06,44"];
+}

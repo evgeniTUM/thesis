@@ -11,10 +11,10 @@ class SeqConstraints(Mapping):
     :type Y: np.ndarray
 
     """
-    def __init__(self, Y, sequences, input_dim, output_dim=2):
+    def __init__(self, model, Y, sequences, input_dim, output_dim=2):
+        self.model = model
         self.sequences = sequences
-        self.seq_num = len(sequences)
-        self.sequences.append(Y.shape[0])
+        self.seq_num = len(sequences) - 1
 
         self.Y = Y
         self.input_dim = input_dim
@@ -45,41 +45,46 @@ class SeqConstraints(Mapping):
         self.A = np.random.randn(self.seq_num, self.output_dim) \
             / np.sqrt(self.seq_num+1)
 
-    def g(self, Y_s, q):
-        return sum([self.A[s, q] * dtw(Y_s, self.Y_s(s))
+    def g(self, current_sequence, q):
+        return sum([self.A[s, q] * exp(-self.K[current_sequence, s])
                     for s in range(self.seq_num)])
 
     def Y_s(self, s):
         return self.Y[self.sequences[s]:self.sequences[s+1]]
 
-    def X_s(self, X, s):
-        return X[self.sequences[s]:self.sequences[s+1]]
+    def mu(self, s, q):
+        X = self.model.X
+        return np.mean(X[self.sequences[s]:self.sequences[s+1],q])
 
-    def df_dtheta(self, dl_df, X):
-        return np.hstack(([[self.g(self.Y_s(s), q) - np.mean(self.X_s(X, s))
-                            for q in range(self.output_dim)]
-                           for s in range(self.seq_num)]))
+    
+    def df_dLambda(self):
+        return [[self.g(s, q)
+                 - self.mu(s, q)
+                 for q in range(self.output_dim)]
+                for s in range(self.seq_num)]
 
-    def df_dX(self, dl_df, X):
-        return dl_df
+    def df_dA(self):
+        return [[self.Lambda[s,q] * sum([exp(-self.K[s,j]) 
+                                         for j in range(self.seq_num)])
+                 for q in range(self.output_dim)]
+                for s in range(self.seq_num)]
+    
+    def df_dX(self):
+        return None
 
     def objective_function(self, x):
         self._set_params(x)
-        return np.sum([[self.Lambda[s, q] * (self.g(self.Y_s(s), q)
-                                             - np.mean(self.X_s(x, s)))
+        return np.sum([[self.Lambda[s, q] * (self.g(s, q)
+                                             - self.mu(s, q))
                         for q in range(self.output_dim)]
                        for s in range(self.seq_num)])
 
     def objective_function_gradients(self, x):
         self._set_params(x)
-        df_dLambda = np.hstack(([[(self.g(self.Y_s(s), q)
-                                   - np.mean(self.X_s(x, s)))
-                                  for q in range(self.output_dim)]
-                                 for s in range(self.seq_num)]))
+        return np.hstack((self.df_dLambda(), self.df_dA())).flatten()
 
-        return np.hstack(([[0
-                            for q in range(self.output_dim)]
-                           for s in range(self.seq_num)]))
+    def objective_and_gradients(self, x):
+        return self.objective_function(x), self.objective_function_gradients(x)
 
 
 from GPy.models import GPLVM
@@ -107,31 +112,60 @@ class SeqBCGPLVM(GPLVM):
                  kernel=None, normalize_Y=False):
 
         self.seq_index = seq_index
-        self.lagr_constraints = SeqConstraints(Y, seq_index, input_dim)
+        self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
         GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
         # use non-linear dim reduction method here
         # self.X =
 
     def objective_function(self, x):
-        return super(SeqBCGPLVM, self).objective_function(x)
+        return super(SeqBCGPLVM, self).objective_function(x[:self.num_params_transformed()]) + \
+            self.lagr_constraints.objective_function(x[self.num_params_transformed():])
 
     def objective_function_gradients(self, x):
-        return super(SeqBCGPLVM, self).objective_function_gradients(x)
+        return np.hstack((super(SeqBCGPLVM, self).objective_function_gradients(x[:self.num_params_transformed()]),
+                          self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed():])))
 
     def objective_and_gradients(self, x):
-        return super(SeqBCGPLVM, self).objective_and_gradients(x)
+        return np.hstack((super(SeqBCGPLVM, self).objective_and_gradients(x[:self.num_params_transformed()]),
+                          self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed()])))
+
+    def optimize(self, optimizer=None, start=None, **kwargs):
+        if start == None:
+            start = np.hstack((self._get_params_transformed(), 
+                               self.lagr_constraints._get_params()))
+
+        super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
+
+
+_data_ = None
 
 
 def test():
     import GPy as GPy
+    global _data_
+    
     data = []
     seq_index = [0]
+    length = 0
     for i in range(3):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
-        seq_index.append(data[i]['Y'].shape[0])
+        length += data[i]['Y'].shape[0]
+        seq_index.append(length)
 
-    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(3)]), 62, seq_index,
-                   init='Random')
+    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(3)]), 
+                   2, seq_index, init='Random')
 
+    _data_ = data
     return m
+
+def plot(m):
+    import GPy
+    global _data_
+
+    ax = m.plot_latent()
+    y = m.likelihood.Y[0, :]
+    data_show = GPy.util.visualize.skeleton_show(y[None, :], _data_[0]['skel'])
+    lvm_visualizer = GPy.util.visualize.lvm(m.X[0, :].copy(), m, data_show, ax)
+    raw_input('Press enter to finish')
+    lvm_visualizer.close()

@@ -258,6 +258,7 @@ For the algorithm we assume that the skeleton extraction from RGBD data works as
 *** Correctly labeled samples (no outliers)
 ** Ideas
 *** Presentation
+**** make clear what is your contribution !!!
 **** Black slides (important points)
 *** Model
 **** Take best three activites (uncertainty) with threshold
@@ -293,7 +294,7 @@ Active learning using Gaussian Processes.
 We will use the "Cornell Activity Datasets (CAD-60 & CAD-120)"[fn:1] to learn and evaluate 
 the performance of an implementation of Gaussian Processes. 
 
-The data set s consist an sequence of frames which include: 
+The data set s consist of an sequence of frames which include: 
 - Image data
 - RGBD data
 - Skeleton information: (joint position and orientation)
