@@ -11,4 +11,5 @@
 /textlint.st
 /textlint.log
 /support/
-/code/spencer/utils.pyc
+
+*.pyc

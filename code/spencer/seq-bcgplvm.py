@@ -1,6 +1,8 @@
 import numpy as np
+import math
 from GPy.core import Mapping
 from utils import dtw
+from priors import DiscriminativePrior
 
 
 class SeqConstraints(Mapping):
@@ -46,7 +48,7 @@ class SeqConstraints(Mapping):
             / np.sqrt(self.seq_num+1)
 
     def g(self, current_sequence, q):
-        return sum([self.A[s, q] * exp(-self.K[current_sequence, s])
+        return sum([self.A[s, q] * math.exp(-self.K[current_sequence, s])
                     for s in range(self.seq_num)])
 
     def Y_s(self, s):
@@ -54,9 +56,8 @@ class SeqConstraints(Mapping):
 
     def mu(self, s, q):
         X = self.model.X
-        return np.mean(X[self.sequences[s]:self.sequences[s+1],q])
+        return np.mean(X[self.sequences[s]:self.sequences[s+1], q])
 
-    
     def df_dLambda(self):
         return [[self.g(s, q)
                  - self.mu(s, q)
@@ -64,11 +65,11 @@ class SeqConstraints(Mapping):
                 for s in range(self.seq_num)]
 
     def df_dA(self):
-        return [[self.Lambda[s,q] * sum([exp(-self.K[s,j]) 
+        return [[self.Lambda[s, q] * sum([math.exp(-self.K[s, j])
                                          for j in range(self.seq_num)])
                  for q in range(self.output_dim)]
                 for s in range(self.seq_num)]
-    
+
     def df_dX(self):
         return None
 
@@ -109,11 +110,13 @@ class SeqBCGPLVM(GPLVM):
 
     """
     def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
-                 kernel=None, normalize_Y=False):
+                 kernel=None, normalize_Y=False, discriminative_sigma=0.5):
 
         self.seq_index = seq_index
         self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
         GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
+
+        self.prior = DiscriminativePrior(discriminative_sigma, seq_index)
         # use non-linear dim reduction method here
         # self.X =
 
@@ -129,21 +132,33 @@ class SeqBCGPLVM(GPLVM):
         return np.hstack((super(SeqBCGPLVM, self).objective_and_gradients(x[:self.num_params_transformed()]),
                           self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed()])))
 
+    def log_prior(self):
+        return self.prior.lnpdf(self._get_params())
+
+    def _log_prior_gradients(self):
+        return self.prior.lnpdf_grad(self._get_params())
+
     def optimize(self, optimizer=None, start=None, **kwargs):
-        if start == None:
-            start = np.hstack((self._get_params_transformed(), 
+        if start is None:
+            start = np.hstack((self._get_params_transformed(),
                                self.lagr_constraints._get_params()))
 
         super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
+
+    def log_prior(self):
+        return self.prior.lnpdf(self.X)
+
+    def _log_prior_gradients(self):
+        return self.prior.lnpdf_grad(self.X)
 
 
 _data_ = None
 
 
-def test():
+def createModel(sigma=0.5):
     import GPy as GPy
     global _data_
-    
+
     data = []
     seq_index = [0]
     length = 0
@@ -153,19 +168,30 @@ def test():
         length += data[i]['Y'].shape[0]
         seq_index.append(length)
 
-    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(3)]), 
-                   2, seq_index, init='Random')
+    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(3)]),
+                   2, seq_index, init='PCA', discriminative_sigma=sigma)
 
     _data_ = data
     return m
 
-def plot(m):
+
+def seq_index2labels(seq_index):
+    labels = np.ones((seq_index[-1]))
+    for i in range(len(seq_index)-1):
+        labels[seq_index[i]:seq_index[i+1]] = i
+
+    return labels
+
+
+def plot(m, visual=False):
     import GPy
     global _data_
 
-    ax = m.plot_latent()
-    y = m.likelihood.Y[0, :]
-    data_show = GPy.util.visualize.skeleton_show(y[None, :], _data_[0]['skel'])
-    lvm_visualizer = GPy.util.visualize.lvm(m.X[0, :].copy(), m, data_show, ax)
-    raw_input('Press enter to finish')
-    lvm_visualizer.close()
+    ax = m.plot_latent(seq_index2labels(m.seq_index))
+
+    if visual:
+        y = m.likelihood.Y[0, :]
+        data_show = GPy.util.visualize.skeleton_show(y[None, :], _data_[0]['skel'])
+        lvm_visualizer = GPy.util.visualize.lvm(m.X[0, :].copy(), m, data_show, ax)
+        raw_input('Press enter to finish')
+        lvm_visualizer.close()
