@@ -11,45 +11,66 @@ class DiscriminativePrior:
     """
     domain = REAL
 
-    def __init__(self, sigma, seq_index):
-        self.sigma = sigma
+    def __init__(self, gamma, seq_index):
+        self.gamma = float(gamma)
         self.seq_index = seq_index
         return
 
+    def setup(self, X):
+        self.dim = X.shape[1]
+        self.N = X.shape[0]
+
+        self.mean_X = np.mean(X, axis=0)
+        self.S_w = np.zeros((self.dim, self.dim))
+        self.S_b = np.zeros((self.dim, self.dim))
+        self.W = np.zeros((self.N, self.N))
+        self.B = np.zeros((self.N, self.N))
+        self.num_classes = len(self.seq_index)-1
+        G = np.zeros((self.N, self.num_classes))
+        N_s = []
+
+        for i in range(self.num_classes):
+            index = slice(self.seq_index[i],self.seq_index[i+1])
+            
+            N_i = self.seq_index[i+1] - self.seq_index[i]
+            M_i = np.mean(X[index], axis=0)
+            
+            self.W[index,index] = np.eye(N_i) - (1.0/N_i) * np.ones((N_i, N_i))
+            G[index,i] = (1.0/N_i) * np.ones((N_i))
+            N_s.append(N_i)
+            
+        B_p = np.diag(N_s)
+        G = G - (1.0/self.N)*np.ones((self.N, self.num_classes))
+        self.B = np.dot(np.dot(G, B_p), G.T)
+
+        self.S_w = (1.0/self.N)* np.dot(np.dot(X.T, self.W), X)
+        self.S_b = (1.0/self.N)* np.dot(np.dot(X.T, self.B), X)
+
+        self.S_b_inv = np.linalg.inv(self.S_b)
+        self.A = np.dot(self.S_b_inv, self.S_w)
+        
+    def _dJ_dX(self, X):
+        self.setup(X)
+        
+        result = np.zeros((self.N, self.dim))
+        for d in range(self.dim):
+            for c in range(self.num_classes):
+                for i in range(self.seq_index[c], self.seq_index[c+1]):
+                    N_i = self.seq_index[c+1] - self.seq_index[c]
+                    dx_dX = np.zeros(X.T.shape)
+                    dx_dX[d, i] = 1.0
+                    
+                    dSw_dX = np.dot(np.dot(dx_dX, self.W), dx_dX.T)
+                    dSb_dX = np.dot(np.dot(dx_dX, self.B), dx_dX.T)
+
+                    temp = -np.dot(dSb_dX, self.A) + dSw_dX
+                    result[i, d] = result[i, d] + np.trace(
+                        (2.0/self.N) * np.dot(self.S_b_inv, temp)) 
+        return result
+
     def _J(self, X):
-        return np.trace(np.dot(np.linalg.inv(self._S_b(X)), self._S_w(X)))
-
-    def _S_w(self, X):
-        dim = X.shape[1]
-        N = float(X.shape[0])
-
-        result = np.zeros((dim, dim))
-        M_0 = np.mean(X, axis=0)
-        for i in range(len(self.seq_index)-1):
-            M_i = np.mean(self._X_i(X, i), axis=0)
-            result += self._N_i(i)/N * np.outer(M_i - M_0, M_i - M_0)
-
-        return result
-
-    def _S_b(self, X):
-        dim = X.shape[1]
-        N = float(X.shape[0])
-
-        result = np.zeros((dim, dim))
-        for i in range(len(self.seq_index)-1):
-            M_i = np.mean(self._X_i(X, i), axis=0)
-            result += self._N_i(i)/N * np.sum(
-                [np.outer((x_k - M_i), (x_k - M_i))
-                 for x_k in self._X_i(X, i)],
-                axis=0)
-
-        return result
-
-    def _X_i(self, X, i):
-        return X[self.seq_index[i]:self.seq_index[i+1]]
-
-    def _N_i(self, i):
-        return self.seq_index[i+1] - self.seq_index[i]
+        self.setup(X)
+        return np.trace(self.A)
 
     def summary(self):
         raise NotImplementedError
@@ -58,7 +79,7 @@ class DiscriminativePrior:
         return np.exp(self.lnpdf(x))
 
     def lnpdf(self, x):
-        return  (1/self.sigma**2) * self._J(x)
+        return self.gamma * self._J(x)
 
     def lnpdf_grad(self, x):
-        return self._J(x)/(self.sigma**2)
+        return self.gamma * self._dJ_dX(x).flatten()

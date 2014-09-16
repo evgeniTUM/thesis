@@ -75,14 +75,14 @@ class SeqConstraints(Mapping):
 
     def objective_function(self, x):
         self._set_params(x)
-        return np.sum([[self.Lambda[s, q] * (self.g(s, q)
-                                             - self.mu(s, q))
-                        for q in range(self.output_dim)]
-                       for s in range(self.seq_num)])
+        return -np.sum([[self.Lambda[s, q] * (self.g(s, q)
+                                              - self.mu(s, q))
+                         for q in range(self.output_dim)]
+                        for s in range(self.seq_num)])
 
     def objective_function_gradients(self, x):
         self._set_params(x)
-        return np.hstack((self.df_dLambda(), self.df_dA())).flatten()
+        return -np.hstack((self.df_dLambda(), self.df_dA())).flatten()
 
     def objective_and_gradients(self, x):
         return self.objective_function(x), self.objective_function_gradients(x)
@@ -110,66 +110,64 @@ class SeqBCGPLVM(GPLVM):
 
     """
     def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
-                 kernel=None, normalize_Y=False, discriminative_sigma=0.5):
+                 kernel=None, normalize_Y=False, discriminative_gamma=0.5):
 
         self.seq_index = seq_index
         self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
         GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
 
-        self.prior = DiscriminativePrior(discriminative_sigma, seq_index)
+        self.prior = DiscriminativePrior(discriminative_gamma, seq_index)
         # use non-linear dim reduction method here
         # self.X =
 
-    def objective_function(self, x):
+    def DDDobjective_function(self, x):
         return super(SeqBCGPLVM, self).objective_function(x[:self.num_params_transformed()]) + \
             self.lagr_constraints.objective_function(x[self.num_params_transformed():])
 
-    def objective_function_gradients(self, x):
+    def DDDobjective_function_gradients(self, x):
         return np.hstack((super(SeqBCGPLVM, self).objective_function_gradients(x[:self.num_params_transformed()]),
                           self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed():])))
 
-    def objective_and_gradients(self, x):
-        return np.hstack((super(SeqBCGPLVM, self).objective_and_gradients(x[:self.num_params_transformed()]),
-                          self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed()])))
+    def DDDobjective_and_gradients(self, x):
+        return self.objective_function(), self.objective_function_gradients()
 
-    def log_prior(self):
-        return self.prior.lnpdf(self._get_params())
 
-    def _log_prior_gradients(self):
-        return self.prior.lnpdf_grad(self._get_params())
-
-    def optimize(self, optimizer=None, start=None, **kwargs):
+    def DDDoptimize(self, optimizer=None, start=None, **kwargs):
         if start is None:
             start = np.hstack((self._get_params_transformed(),
                                self.lagr_constraints._get_params()))
 
         super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
 
+
     def log_prior(self):
         return self.prior.lnpdf(self.X)
-
+    
     def _log_prior_gradients(self):
-        return self.prior.lnpdf_grad(self.X)
+        return np.hstack((self.prior.lnpdf_grad(self.X), 
+                          super(SeqBCGPLVM, self)._log_prior_gradients()[-5:]))
 
 
 _data_ = None
 
 
-def createModel(sigma=0.5):
+def createModel(gamma=0.5):
     import GPy as GPy
     global _data_
 
+    actions = 3
+
     data = []
     seq_index = [0]
-    length = 0
-    for i in range(3):
+    index = 0
+    for i in range(actions):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
-        length += data[i]['Y'].shape[0]
-        seq_index.append(length)
+        index += data[i]['Y'].shape[0]
+        seq_index.append(index)
 
-    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(3)]),
-                   2, seq_index, init='PCA', discriminative_sigma=sigma)
+    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(actions)]),
+                   2, seq_index, discriminative_gamma=gamma)
 
     _data_ = data
     return m
