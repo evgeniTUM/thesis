@@ -145,7 +145,7 @@ class SeqBCGPLVM(GPLVM):
     
     def _log_prior_gradients(self):
         return np.hstack((self.prior.lnpdf_grad(self.X), 
-                          super(SeqBCGPLVM, self)._log_prior_gradients()[-5:]))
+                          np.zeros(5)))
 
 
 _data_ = None
