@@ -89,6 +89,8 @@ class SeqConstraints(Mapping):
 
 
 from GPy.models import GPLVM
+from GPy.models import SparseGPLVM
+from GPy.models import BCGPLVM
 
 
 class SeqBCGPLVM(GPLVM):
@@ -110,15 +112,18 @@ class SeqBCGPLVM(GPLVM):
 
     """
     def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
-                 kernel=None, normalize_Y=False, discriminative_gamma=0.5):
+                 kernel=None, normalize_Y=False, sigma=0.5):
 
+        self.sigma = float(sigma)
         self.seq_index = seq_index
         self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
+
+        print mapping
+
         GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
 
-        self.prior = DiscriminativePrior(discriminative_gamma, seq_index)
-        # use non-linear dim reduction method here
-        # self.X =
+
+        self.prior = DiscriminativePrior(seq_index)
 
     def DDDobjective_function(self, x):
         return super(SeqBCGPLVM, self).objective_function(x[:self.num_params_transformed()]) + \
@@ -139,35 +144,91 @@ class SeqBCGPLVM(GPLVM):
 
         super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
 
-
-    def log_prior(self):
-        return self.prior.lnpdf(self.X)
+    def DDlog_prior(self):
+        return (1.0/self.sigma**2) * self.prior.lnpdf(self.X) 
+        
     
-    def _log_prior_gradients(self):
-        return np.hstack((self.prior.lnpdf_grad(self.X), 
-                          np.zeros(5)))
+    def DD_log_prior_gradients(self):
+        return (1.0/self.sigma**2) * np.hstack((self.prior.lnpdf_grad(self.X), 
+                                                np.zeros(self._get_params().size - self.X.size))) 
+            
 
 
 _data_ = None
 
 
-def createModel(gamma=0.5):
+def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
     import GPy as GPy
     global _data_
-
-    actions = 3
 
     data = []
     seq_index = [0]
     index = 0
-    for i in range(actions):
+# walk sequences
+    for i in range(2):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
         seq_index.append(index)
 
-    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(actions)]),
-                   2, seq_index, discriminative_gamma=gamma)
+# jump sequences
+    # for i in range(3,5):
+    #     data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
+    #     data[i]['Y'][:, 0:3] = 0.0
+    #     index += data[i]['Y'].shape[0]
+    #     seq_index.append(index)
+
+# # boxing
+#     for i in range(5,7):
+#         data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-5)]))
+#         data[i]['Y'][:, 0:3] = 0.0
+#         index += data[i]['Y'].shape[0]
+#         seq_index.append(index)
+
+    m = SeqBCGPLVM(np.vstack([data[i]['Y'] for i in range(len(data))]),
+                   2, seq_index, sigma=sigma, init=init)
+
+    _data_ = data
+    return m
+
+
+def createSeqModel(sigma=0.5, lengthscale=1.0):
+    """ used to test sequence back constraints """
+    import GPy as GPy
+    global _data_
+
+    seq_index = [0]
+
+
+    data = []
+    data.append(np.array([ [1, 2, 3],
+                           [2, 3, 4],
+                           [3, 4, 5]]))
+    seq_index.append(3)
+
+    data.append(np.array([ [1, 2, 3],
+                           [1, 2, 4],
+                           [1, 2, 5]]))
+    seq_index.append(6)
+
+    data.append(np.array( [ [1, 2, 3],
+                            [2, 2, 3],
+                            [3, 2, 3]]))
+    seq_index.append(9)
+    data.append(np.array( [ [5, 6, 7],
+                            [4, 5, 6],
+                            [3, 3, 3]]))
+
+    seq_index.append(12)
+
+
+
+
+    actions = len(data)
+
+
+    m = SeqBCGPLVM(np.vstack([data[i] for i in range(actions)]),
+                   2, seq_index, sigma=sigma)
 
     _data_ = data
     return m

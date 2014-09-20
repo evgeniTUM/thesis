@@ -40,6 +40,7 @@
 #+LaTex_HEADER: \usepackage{graphicx}
 
 #+LaTeX_HEADER: \usepackage{todonotes}
+#+LaTeX_HEADER: \usepackage{setspace}
 
 
 # --- Options
@@ -58,15 +59,14 @@
 
 
 #+begin_latex
+\newcommand{\TODO}[1]{\todo[color=red, textsize=large]{#1}}
 \listoftodos
 #+end_latex
 
 
-* ToDo                                                             :noexport:
-** Cite
-*** software packages and tools used
-*** datasets
-** Check bibliography style and data!!!
+\TODO{cite:software packages and tools used}
+\TODO[color=red,textsize=large]{cite:datasets (mocap, daily activities, ms activities)}
+\TODO{Check bibliography style and data!!!}
 
 
 * Introduction
@@ -76,6 +76,11 @@
 Use gaussian processes to learn new activities in real time
 *** Evaluate Gaussian processes against different ml algorithms for activity recognition
 Evaluate the performance of GPs in relation to the other solutions
+** The SPENCER project
+\missingfigure{spencer prototype robot (Bender B21)}
+
+\missingfigure{spencer robot}
+
 ** Scope
 *** Use only skeleton data 
 With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
@@ -113,12 +118,19 @@ lower dimensional generative manifold. The last one is called
 Dimensionality Reduction. ebib:bishop_pattern_2006
 \missingfigure{dimensionality reduction example}
 
-** Generative vs. discriminative models
-*** Generative
+*** Generative models
 Generative models learn the underlying process which generates the data. Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes can be deduced later.
 
-*** Discriminative
+*** Discriminative models
 A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find parameters but by not taking the prior into account ...
+
+*** Online learning
+Algorithms which can be gradually optimized towards a good solution using streaming batches of samples are considered to do online learning. 
+
+*** Active learning
+Very often the bottleneck of powerful supervised learning techniques is that they rely on correctly labeled data. Since labeling has to be performed by a human it is very difficult and costly to label large amount of data. By identifying more important samples by their entropy, thus information ability of selecting a good model, it is possible to achieve good results with fewer samples.
+
+Letting the algorithm select such samples and query only their labels from a human, who is now actively participating in the learning loop, is called active learning. 
 
 ** Gaussian Processes
 A gaussian process can be seen as the bayesean posterior consisting of
@@ -149,7 +161,8 @@ Because the model is not parametric it does not suffer from
 **** probabilistic
 The hyperparameters can be interpreted. The lenghtscale controls how much neighboring points contribute to the covariance of the function. 
 
-**** nice for Baysean
+
+**** nice for Bayesian
 **** linear algebra operations (marginals and conditionals)
 *** Disadvantages
 **** Unimodal
@@ -350,7 +363,40 @@ The data set s consist of an sequence of frames which include:
 ** Discriminative Sequence Back-Constrained GP-LVM
 In the paper "Discriminative Sequence Back-Constrained GP-LVM for MOCAP Based
 Action Recognition"ebib:_discriminative_2013 the authors propose a method for
-classifying MOCAP actions. By using a similarity feature for the sequences in
+classifying MOCAP actions.
+
+#+begin_src dot :file figures/seq-gplvm-approach.png
+   digraph pipeline {
+     label="Pipeline: Sequence back-constrained GP-LVM pipeline ... CITATION";
+
+     node [color=blue, shape=box];
+
+     subgraph clusterLearning {
+        style = filled;
+        label =  "learning";
+        feature_extraction -> gplvm -> latent_space -> centroids;
+        sequence_constraints -> gplvm;
+        discriminative_constraints -> gplvm;
+
+        discriminative_constraints [shape=ellipse, label="discriminative  constraints"];
+        sequence_constraints [shape=ellipse, label="sequence constraints"];
+        { rank=same; gplvm; sequence_constraints; discriminative_constraints; }
+     }
+
+     centroids -> SVM;
+
+     subgraph clusterRecognition {
+              label = "recognition";
+              sequence_mapping -> SVM -> activity_class;           
+     }
+  }
+#+end_src
+
+#+RESULTS:
+[[file:figures/seq-gplvm-approach.png]]
+
+
+By using a similarity feature for the sequences in
 the observed space and constraining the optimization to preserve this measure
 the local distances between the sequences are transferred into the latent space.
 This has two advantages. First of all the sequences have a meaningful clustering
@@ -391,9 +437,16 @@ As the optimization for GP-LVM is determined by the above similarity measure and
 Also one problem with the real-time recognition is that determining when a activity has ended/begun is very difficult. Also as we do not know how long a sequence is we have to calculate the centroid for several time frames.
 
 ** GP- Latent Motion Flow Field (based on the gp regreesion flow)
-Many models which use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the problem remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to use GPRF as classification can be done using second order dynamics which should give better results. 
+Many models which use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the problem remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to use GPRF as classification can be done using second order dynamics which should give better results. Going further the activity itself is characterized by the first and second moments of the trajectory function. By explicitly modeling the velocity of the trajectory we can take changes in the joint movement into account.
 
 The Gaussian Process Regression Flow ebib:kim_gaussian_2011 can be used to model the trajectories in the latent space.
+
+
+
+
+The GP-LMF method is inspired by this model. The difference being that in the case of activity recognition we do not know the starting position and also the trajectories can have significantly different lengths. For this reason it is very difficult to normalize with respect to the time dimension.
+Nevertheless, resulting from the properties of Gaussian Process regression, we have also a dense mean flow field and dense variances. This allows us perform efficient and robust online recognition in the latent space.
+
 This model is attractive for two reasons. First real-time classification of incomplete trajectories is possible. Second it is possible to do online learning by simply adding the new class as a new flow field to the pool of GPs. It is very difficult to adjust the other models for online learning, because of the problem that we can get stuck in a local minimum when optimizing the parameters of the GP.
 
 The idea is to learn a motion field in the latent space for each activity. This can be achieved by learning the velocity function of the latent point just like in the GPRF model presented above. With the difference that we do not use the spatio-temporal domain but learn only the flow in the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. On top of that we also want to recognize an activity which is being interrupted by another activity, so we can't fix the lengths of the trajectories. 
@@ -406,7 +459,45 @@ Variances in the speed of performing an activity can be modeled by giving the po
 When a point has greater mass then it needs more energy to be propagated along the flow field (the overall activity is slower) and vice versa.
 
 An advantage of this method is that activities with repetitive motions, such as walking or running, can be learned without using periodic kernels or other means to model them explicitly. Repetitive motions can be seen as just multiple samples of the same motion which define the flow field.
- 
+
+#+begin_src dot :file figures/gplmf-approach.png
+digraph pipeline {
+        label="Pipeline: Gaussian Process - Latent Motion Flow";
+
+        node [color=blue, shape=box];
+
+        subgraph clusterLearning {
+                label = "learning"
+        
+                subgraph clusterDimReduction {
+                        style = filled;
+                        label =  "dim. reduction";
+                        feature_extraction -> gplvm -> latent_space;
+                        back_constraints -> gplvm;
+
+                        back_constraints [shape=ellipse, label="back constraints"];
+                        { rank=same; gplvm; back_constraints; }
+                }
+
+                latent_space -> numerical_derivative -> GPs -> flow_model;
+                
+                
+        }
+
+        energy_computation -> flow_model [arrowhead=dot, style=dashed];
+
+        subgraph clusterRecognition {
+                label = "recognition";
+                online_sequence -> energy_computation -> class;           
+        }
+}
+#+end_src
+
+#+RESULTS:
+[[file:figures/gplmf-approach.png]]
+
+
+
 *** Recognition
 The current activity is being mapped into the latent space. Through the learned back-constrained. The recognition is being performed solely in the latent space. By propagating the current position by each flow field we can calculate the next possible pose. By comparing the similarity considering the variances we have a measure of how well the current activity resamples each flow field e.g. learned activity.
 
@@ -424,10 +515,23 @@ This approach is also suitable for finding new classes as the above energy value
 *** Multiple Hypothesis Prediction
 Since we have a GP representing our flow field we can predict future point positions with the mean value. Moreover also having informative variances we can sample several possible trajectories. This can be accomplished using an particle filter. Hence we can have multi-hypothesis predictions along with their probabilities.
 *** Problems
+**** Dimensionality reduction
+Performing a non-linear dimensionality reduction is no easy task. Testing was done with only two dimensions as it easier to visualize the latent space and the resulting flow fields.
+A latent space with higher dimension will naturally make the reduction more robust and the field will have a more natural interpretation....
+
+**** Stable class mean flow field
 When learning a stable flow field from several samples the field can degenerate with the inclusion of strong variable paths. Therefore it is important to ensure that the algorithm learns stable paths. This can be achieved by sampling uniform random sampling from all samples of the same activity.
 
 \todo{active learning - problem ??}
 ** Implementation
+*** Learning the flow field
+- Note taken on [2014-09-20 Sat 16:52]
+We deploy GP for learning the flow field which gives us several advantages.
+
+\missingfigure{latent space (several samples of one activity) with flow field}
+
+*** Finding appropriate kernel function
+*** 
 *** Software
 MATLAB - FGPLVM 
 Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
@@ -436,6 +540,8 @@ Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
 - SciPy/NumPy
 - GPy
 - mlpy
+
+
 
 
 

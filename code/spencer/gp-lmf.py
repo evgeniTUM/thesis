@@ -1,0 +1,170 @@
+import numpy as np
+import math
+
+
+from GPy.models import GPLVM
+from GPy.models import SparseGPLVM
+from GPy.models import BCGPLVM
+from GPy.models import GPRegression
+import GPy
+
+class GPLMF(BCGPLVM):
+    """
+    Gaussian Process - Latent Motion Flow
+    Activity modeling by sparse motion flow model in latent space.
+
+
+    :param Y: observed data
+    :type Y: np.ndarray
+    :param input_dim: latent dimensionality
+    :type input_dim: int
+    :param init: initialisation method for the latent space
+    :type init: 'PCA'|'random'
+
+    """
+    def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
+                 kernel=None, normalize_Y=False, sigma=0.5, mapping=None, labels=None):
+
+        self.sigma = float(sigma)
+        self.seq_index = seq_index
+        self.labels = labels
+
+        if mapping == None:
+            GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
+            #SparseGPLVM.__init__(self, Y, input_dim, kernel=kernel, init=init, num_inducing=20)
+        else:
+            print "Using: back-constraints"
+            BCGPLVM.__init__(self, Y, input_dim, kernel=kernel, mapping=mapping)
+
+
+
+def calc_y(X):
+    dimensions = X.shape[1]
+    result = []
+    for d in range(dimensions):
+        df_dx = [ [X[i+1,d] - X[i-1,d]] for i in range(1,X.shape[0]-1) ]
+        result.append(df_dx)
+
+    return X[1:-1], np.array(result)
+
+
+def learn_flow(X, y, l_scale=0.01, variance=1.0):
+
+    kernel = GPy.kern.rbf(2, ARD=True, 
+                          lengthscale=(l_scale,l_scale), variance=variance)
+    m = GPRegression(X,y,kernel)
+
+    m.optimize('bfgs', max_iters=200)
+    
+    return m
+
+def learn_flows(X, Y, l_scale=0.01, variance=1.0 ):
+    return [ learn_flow(X, Y[d], l_scale, variance)
+             for d in range(Y.shape[0])]
+        
+
+
+def energy(X, f1, f2):
+    return 0
+
+
+
+def plot_flow_field(f, model, index=0):
+    import matplotlib 
+    import matplotlib.pyplot as plt
+
+    limit = max(abs(np.min(model.X)), np.max(model.X))
+    samples = 20
+    dimensions = len(f)
+    
+    x = []
+    for d in range(dimensions):
+        x.append(np.linspace(-limit, limit, samples))
+
+    x = list(np.meshgrid(*x))
+    X = np.array(zip(np.array(x).flatten()))
+
+    vx = []
+    for d in range(dimensions):
+        vx.append(f1.predict(X)[index])
+    
+
+    # plt.streamplot(x, y, vx, vy, color=)
+
+    plot(model);
+    quiver(x[0], x[1], y[0], y[1])
+    show()
+    
+
+
+
+def test(m):
+    x, y = calc_y(m.X)
+    f = learn_flows(x,y)
+
+    plot_flow_field(f, m)
+
+    
+_data_ = None
+
+
+def createModel(sigma=0.5, init='PCA', lengthscale=100.0):
+    import GPy as GPy
+    global _data_
+
+    data = []
+    seq_index = [0]
+    index = 0
+# walk sequences
+    for i in range(1):
+        data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
+        data[i]['Y'][:, 0:3] = 0.0
+        index += data[i]['Y'].shape[0]
+        seq_index.append(index)
+
+# jump sequences
+    # for i in range(3,5):
+    #     data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
+    #     data[i]['Y'][:, 0:3] = 0.0
+    #     index += data[i]['Y'].shape[0]
+    #     seq_index.append(index)
+
+# # boxing
+#     for i in range(5,7):
+#         data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-5)]))
+#         data[i]['Y'][:, 0:3] = 0.0
+#         index += data[i]['Y'].shape[0]
+#         seq_index.append(index)
+
+    back_kernel=GPy.kern.rbf(data[0]['Y'].shape[1], lengthscale=lengthscale)
+    mapping = GPy.mappings.Kernel(X=np.vstack([data[i]['Y'] for i in range(len(data))]), output_dim=2, kernel=back_kernel)
+
+    m = GPLMF(np.vstack([data[i]['Y'] for i in range(len(data))]),
+                   2, seq_index, sigma=sigma, init=init, mapping=mapping)
+
+    _data_ = data
+    return m
+
+
+def seq_index2labels(seq_index):
+    labels = np.ones((seq_index[-1]))
+    for i in range(len(seq_index)-1):
+        labels[seq_index[i]:seq_index[i+1]] = i
+
+    return labels
+
+
+def plot(m, visual=False):
+    import GPy
+    global _data_
+
+    ax = m.plot_latent(seq_index2labels(m.seq_index))
+
+    if visual:
+        y = m.likelihood.Y[0, :]
+        data_show = GPy.util.visualize.skeleton_show(y[None, :], _data_[0]['skel'])
+        lvm_visualizer = GPy.util.visualize.lvm(m.X[0, :].copy(), m, data_show, ax)
+        raw_input('Press enter to finish')
+        lvm_visualizer.close()
+
+

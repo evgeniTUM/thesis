@@ -11,8 +11,7 @@ class DiscriminativePrior:
     """
     domain = REAL
 
-    def __init__(self, gamma, seq_index):
-        self.gamma = float(gamma)
+    def __init__(self, seq_index):
         self.seq_index = seq_index
         return
 
@@ -56,7 +55,6 @@ class DiscriminativePrior:
         for d in range(self.dim):
             for c in range(self.num_classes):
                 for i in range(self.seq_index[c], self.seq_index[c+1]):
-                    N_i = self.seq_index[c+1] - self.seq_index[c]
                     dx_dX = np.zeros(X.T.shape)
                     dx_dX[d, i] = 1.0
                     
@@ -79,7 +77,7 @@ class DiscriminativePrior:
         return np.exp(self.lnpdf(x))
 
     def lnpdf(self, x):
-        return self.gamma * self._J(x)
+        return self._J(x)
 
     def lnpdf_grad(self, x):
-        return self.gamma * self._dJ_dX(x).flatten()
+        return self._dJ_dX(x).flatten()
