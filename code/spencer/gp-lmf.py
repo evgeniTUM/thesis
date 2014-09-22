@@ -23,11 +23,12 @@ class GPLMF(BCGPLVM):
 
     """
     def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
-                 kernel=None, normalize_Y=False, sigma=0.5, mapping=None, labels=None):
+                 kernel=None, normalize_Y=False, sigma=0.5, mapping=None, class_index=None):
 
         self.sigma = float(sigma)
         self.seq_index = seq_index
-        self.labels = labels
+        self.class_index = class_index
+        self.labels = seq_index2labels(class_index)
 
         if mapping == None:
             GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
@@ -60,7 +61,7 @@ def learn_flow(X, y, l_scale=0.1, variance=1.0):
     
     return m
 
-def learn_flows(X, Y, l_scale=0.01, variance=1.0 ):
+def learn_flows(X, Y, l_scale=1.0, variance=0.00001 ):
     return [ learn_flow(X, Y[d], l_scale, variance)
              for d in range(Y.shape[0])]
         
@@ -126,26 +127,30 @@ def test(m):
 _data_ = None
 
 
-def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2):
-    import GPy as GPy
-    global _data_
 
+def get_mocap_data():
     data = []
     seq_index = [0]
+    class_index = [0]
     index = 0
-# walk sequences
+
+    # walk sequences
     for i in range(1):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
         seq_index.append(index)
+    class_index.append(index)
 
-# jump sequences
-    # for i in range(3,5):
-    #     data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
-    #     data[i]['Y'][:, 0:3] = 0.0
-    #     index += data[i]['Y'].shape[0]
-    #     seq_index.append(index)
+
+        
+# # jump sequences
+#     for i in range(3,5):
+#         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
+#         data[i]['Y'][:, 0:3] = 0.0
+#         index += data[i]['Y'].shape[0]
+#         seq_index.append(index)
+#     class_index.append(index)
 
 # # boxing
 #     for i in range(5,7):
@@ -153,12 +158,25 @@ def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2):
 #         data[i]['Y'][:, 0:3] = 0.0
 #         index += data[i]['Y'].shape[0]
 #         seq_index.append(index)
+#     class_index.append(index)
 
-    back_kernel=GPy.kern.rbf(data[0]['Y'].shape[1], lengthscale=lengthscale)
-    mapping = GPy.mappings.Kernel(X=np.vstack([data[i]['Y'] for i in range(len(data))]), output_dim=dimensions, kernel=back_kernel)
 
-    m = GPLMF(np.vstack([data[i]['Y'] for i in range(len(data))]),
-                   dimensions, seq_index, sigma=sigma, init=init, mapping=mapping)
+    data = np.vstack([data[i]['Y'] for i in range(len(data))])
+
+    return data, seq_index, class_index
+
+
+
+def createModel(sigma=0.5, init='Random', lengthscale=1.0, dimensions=2):
+    global _data_
+
+    data, seq_index, class_index = get_mocap_data()
+
+    back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)
+    mapping = GPy.mappings.Kernel(X=data, output_dim=dimensions, kernel=back_kernel)
+
+    m = GPLMF(data, dimensions, seq_index, class_index=class_index,
+              sigma=sigma, init=init, mapping=mapping)
 
     _data_ = data
     return m
@@ -170,6 +188,8 @@ def seq_index2labels(seq_index):
         labels[seq_index[i]:seq_index[i+1]] = i
 
     return labels
+
+
 
 
 def plot(m, visual=False):
