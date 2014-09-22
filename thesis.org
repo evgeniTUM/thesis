@@ -33,6 +33,7 @@
 #+LaTeX_HEADER: \usepackage{amsmath}
 #+LaTeX_HEADER: \usepackage{amsfonts}
 #+LaTeX_HEADER: \usepackage{amssymb}
+#+LaTeX_HEADER: \usepackage{bm}
 #+LaTeX_HEADER: \usepackage{textcomp}
 
 #+LaTeX_HEADER: \usepackage{makeidx}
@@ -47,6 +48,21 @@
 #
 #+LaTeX_HEADER: \pagestyle{scrheadings}
 
+
+
+# --- TITLE ---
+#
+#+LaTeX_HEADER: \let\OldMaketitle\maketitle
+#+LaTeX_HEADER: \renewcommand{\maketitle}{
+#+LaTeX_HEADER: \pagenumbering{roman} 
+#+LaTeX_HEADER:
+#+LaTeX_HEADER: \OldMaketitle
+#+LaTeX_HEADER: }
+
+
+
+
+
 # --- Table of Contents
 # 
 #+OPTIONS: toc:nil   
@@ -59,8 +75,9 @@
 
 
 #+begin_latex
-\newcommand{\TODO}[1]{\todo[color=red, textsize=large]{#1}}
-\listoftodos
+\newcommand{\TODO}[1]{\todo[color=red]{#1}}
+\listoftodos 
+\pagenumbering{arabic} 
 #+end_latex
 
 
@@ -76,27 +93,38 @@
 Use gaussian processes to learn new activities in real time
 *** Evaluate Gaussian processes against different ml algorithms for activity recognition
 Evaluate the performance of GPs in relation to the other solutions
-** The SPENCER project
+
+** Scope
+*** The SPENCER project
 \missingfigure{spencer prototype robot (Bender B21)}
 
 \missingfigure{spencer robot}
-
-** Scope
-*** Use only skeleton data 
 With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
 
 \missingfigure{skeleton representation}
 
 ** Notations and conventions
-*** Matrices uppercase bold
-*** Vectors lowercase bold
-*** Constants lowercase
-*** Parameters lowercase greek letters
-*** GP notation
-*** Expectation notation <...>
+- Matrices uppercase bold
+- Vectors lowercase bold
+- Constants lowercase
+- Parameters lowercase greek letters
+- GP notation
+- Expectation notation <...>
+** Structure of the thesis
+- Introduction ::
+   The first chapter introduced the topic of this work. The motivation and the scope is explained.
+- Basic Concepts ::
+   This chapters summarizes some basic concepts and models used in our approach. For the most part Gaussian Process Regression and Gaussian Process - Latent Variable Models are being explained. It also gives an overview of methods used in similar approaches in the related works section, such as \todo{overview aproaches related work }
+- Related Work
 
-* Concepts
-** Machine Learning  
+- Analysis
+  The fourth chapter discusses the advantages and disadvantages of some existing approaches towards online activity recognition.
+- Approach
+  In the fifth chapter the two approaches are being discussed. The first one is an implementation of "Discriminative Sequence Back-constrained {GP}-{LVM} for {MOCAP} based Action Recognition}" ebib:_discriminative_2013. The second one being a novel approach which is learns a motion flow field in the latent space through a Gaussian Process Regression.
+- Results and Outlook
+  The last chapter summarizes the results of the two approaches and gives a brief outlook of future improvements.
+* Basic Concepts
+** Machine Learning
 *** Supervised learning
 Supervised learning is the task of classification or regression when the data is being labeled. 
 The algorithm then takes the labeled samples (and maybe some confidence values) and infers the model parameters (or hyperparameters) accordingly. 
@@ -111,18 +139,26 @@ Classification the task of learning which category a sample belongs to. A promin
 \missingfigure{regression example}
 Regression is a terminus in machine learning and means function approximation. Here the domain of the samples label is continuous. 
 
+In most cases we search for a good model that explains the data we have. Parametric models, for example, try to learn the ...
+When searching for an appropriate model it is also important that we try to capture the underlying relationship without compromising the generalization property, which is the ability of the model to correctly predict unseen samples. The case that an algorithm learns the relationship of the data that is used to train the model (training data) but cannot predict new samples is called overfitting. The opposite is called underfitting. 
+
+
+Very often the parameter search is done by maximizing the probability of the data given the model parameters. 
+
+$$ \operatorname{arg\,max}_{\bm{\theta}} p(\bm{X} | \bm{\theta}) = \operatorname{arg\,max}_{\bm{\theta}} \frac{p(\bm{\theta}|\bm{X}) * p(\bm{X})}{p(\bm{\theta})} $$
+
+where $ \theta $ are the model parameters and $ X $ is the data.
+
 *** Unsupervised learning
-In unsupervised learning the algorithms tries to detect patterns in
-the unlabeled data. Pattern may be clusters of similar samples or a
-lower dimensional generative manifold. The last one is called
-Dimensionality Reduction. ebib:bishop_pattern_2006
+In contrast to supervised learning in unsupervised learning we have no labeled data i.e. there is no supervisor giving each sample a category (classification) or a value (regression). In this case we can only derive properties of the generation process. Therefore we try to detect patterns in the unlabeled data. These pattern may be clusters of similar samples or a lower dimensional generative manifold from which the samples are generated. The last one is called Dimensionality Reduction which will be also a subject in this work. ebib:bishop_pattern_2006 
+
 \missingfigure{dimensionality reduction example}
 
 *** Generative models
-Generative models learn the underlying process which generates the data. Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes can be deduced later.
+Generative methods model the underlying process which generates the data. In Bayesian terms we model the likelihood and the. Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes have a natural interpretation. An example of this is \todo{generative model example}
 
 *** Discriminative models
-A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find parameters but by not taking the prior into account ...
+A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find the model parameters but by not taking the prior into account the model becomes more generative and is susceptible to overfitting.
 
 *** Online learning
 Algorithms which can be gradually optimized towards a good solution using streaming batches of samples are considered to do online learning. 
@@ -132,21 +168,52 @@ Very often the bottleneck of powerful supervised learning techniques is that the
 
 Letting the algorithm select such samples and query only their labels from a human, who is now actively participating in the learning loop, is called active learning. 
 
-** Gaussian Processes
-A gaussian process can be seen as the bayesean posterior consisting of
-the product of the a (gaussian) functional prior and the observed
+** The gaussian distribution
+
+*** Univariate gaussian distribution
+In the one dimensional case the gaussian distribution is well known and understood. Moreover many processes in nature can be modeled with this distribution and for this reason it is also called the Normal distribution. The probability of an event is very high on a certain "point" (its meain value $ \mu $) and it drops quickly on each side with the standard deviation $ \sigma $.
+
+$$ \mathcal{N}(\mu, \sigma^2) = \frac{1}{\sigma  \sqrt{2 \pi}}e^{-\frac{x-\mu}{2 \sigma^2}} $$
+
+One disadvantage of this distribution which we can see from the above formula is that it can model only one hypothesis. This is also the case for the gaussian distributions of multiple (multivariat gaussian distribution) and infinite (gaussian process) dimensions.
+
+*** Multivariate gaussian distribution
+The multivariat gaussian distribution is the generalization of the gaussian distribution in higher dimensions.
+
+$$ \mathcal{N}(\bm{\mu}, \bm{\Sigma}) =  \frac{1}{  \sqrt{(2 \pi)^d} |\bm{\Sigma}|}
+e^{-\frac{1}{2} (\bm{x} - \bm{\mu})^T \bm{\Sigma}^{-1}  (\bm{x} - \bm{\mu})} $$
+
+The two parameters of the distribution are:
+- mean :: $ \bm{\mu} = E[x] $ Representing the most probable vector
+- covariance :: $ \bm{\Sigma} $ Representing the covariance for each pair of the elements of the random vector: $ \bm{\Sigma}_{ij} = Cov[x_i, x_j] $
+
+The exponent is mahalanobis distance, which measures the distance of a point to the ellipsoid defined by the covariance matrix.\todo{cite}
+
+If we treat each element of the vector $ \bm{x} $ as an point of a ... abgeschnittene ? ... discrete function we can view this regard the gaussian distribution as a probability function over the function space. Letting the dimensionality $ d $ go to infinity it model continuous functions. ... ueberleitung GPs ... 
+
+In this case the mean is a function $ E[\bm{x}] = f(x) $ and because of the fact that we have now infinite dimensions the covariance is also a function of the elements $ Cov(x,y) $.
+ 
+
+It can be seen as a gaussian distribution in function space. ebib:rasmussen_gaussian_2006
+
+A gaussian process can be also seen as the bayesean posterior consisting of
+the product of the (gaussian) functional prior and the observed
 samples.??? Another view is a kernelized regression with infinite
 parameters. ebib:rasmussen_gaussian_2006
 
-A gaussian process is a non-parametric model and is governed by the
-hyperparameters of the used kernel. It can be seen as a gaussian
-distribution over functions.
+A gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting. 
 
+
+** Gaussian Processes
 *** Regression
 \missingfigure{nice GP regression example}
 
 *** Learning
 GPs hyperparameter learning by variational optimization (data fit term + cov. regularizer)
+
+In contrast to parametric models gaussian processes are less prune to overfitting because of the data fit term.
+
+
 $$ E(\theta) = \frac{1}{2}\log({K}) - \frac{y^T K^{-1} y}{2} $$
 *** Classification
 Classifying with GPs is a little more involved, because of the
@@ -168,16 +235,18 @@ The hyperparameters can be interpreted. The lenghtscale controls how much neighb
 **** Unimodal
 **** susceptible to outliers
 The student-t distribution is robust against outliers but is much harder to deal with.
+**** high computational complexity
+$ \mathcal{O}(n^3) $
 
+There are sparse GP methods which approximate the model. An example are the informative vector machines (IVM) which reduce the complexity to $ \mathcal{O}(d^2 n) $ where d is a subset of the samples selected by maximum entropy. ebib:lawrence_fast_2003
 *** Algorithms
 **** Sparse GPs (IVM)
 ***** IVM for multiple classes ebib:seeger_sparse_2004
 
-
 ** GP-LVM
 
-The GP-LVM performs a non-linear dimensionality reduction from an observed space$X$ to a latent space $Y$ ebib:lawrence_probabilistic_2005
-It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a gaussian prior for the mapping $f$. Technically it a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from observed space to one latent dimension. \todo{formulas etc.} 
+The GP-LVM performs a non-linear dimensionality reduction from an observed space$ X $ to a latent space $ Y $ ebib:lawrence_probabilistic_2005
+It does this by maximizing the likelihood $$ p(Y|X) = p(Y|f)p(f|X) $$ using a gaussian prior for the mapping $ f $. Technically it a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from observed space to one latent dimension. \todo{formulas etc.} 
 The model learns a (non-linear) mapping from latent space to observed space. This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a very strong latent variable model.
 
 \missingfigure{example GP-LVM, skeleton}
@@ -187,13 +256,13 @@ Tipping and Bishop, Journal of the Royal Statistical Society (1999)
 
 
 *** Back-constraints GP-LVM
-One problem with this model is that it does not preserve local distances in the latent space.This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $g_i(y_i) = x_i$ is introduced which constrains the points in latent space to be more near if they are also near in the observed space. Instead of optimizing directly on $X$ the back-constrained GP-LVM optimizes using the  mapping instead. 
+One problem with this model is that it does not preserve local distances in the latent space.This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $ g_i(y_i) = x_i $ is introduced which constrains the points in latent space to be more near if they are also near in the observed space. Instead of optimizing directly on $ X $ the back-constrained GP-LVM optimizes using the  mapping instead. 
 
 Having this back-constraints also gives us a mapping from observed space to latent space which can be used to project a new sample into the latent space without costly maximum likelihood estimates. 
 \missingfigure{example BCGPLVM}
  
 *** Bayesian GP-LVM
-An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $X$. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
+An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $ X $. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
 
 *** Discriminative GP-LVM
 Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using the GDA \todo{elaborate GDA} a prior is being enforced on the LVM which ensures that samples from one class are more clustered and different classes are more separated in the latent space. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
@@ -265,7 +334,7 @@ In ebib:wang_gaussian_2005 the dynamics of the latent space is being modeled fro
 
                      $$ x_{t_{k+1}} = f(x_{k}) $$
 
-$f(x)$ is being modeled by a gaussian process.
+$ f(x) $ is being modeled by a gaussian process.
 
 This model was applied for activity recognition in ebib:jamalifar_3d_2012 where the classification is done through an SVM in the hyperparameter space. (only 2? features)
 
@@ -404,12 +473,12 @@ in the latent space. Second by also learning the back-constraint it is possible
 to calculate the centroid of a sequence in the latent space directly without
 maximizing a likelihood. This in turn is being used to do real-time
 classification for actions. The mapping is defined as a linear combination of
-the DTW distance between every other sequence. For every latent dimension $q$ we
+the DTW distance between every other sequence. For every latent dimension $ q $ we
 have:
 
               $$ g_{q}(Y_s) = \sum_{m=1}^{S} a_{mq} k(Y_s,Y_m) $$
 
-where the similarity measure is $k(Y_s, Y_m) = \gamma e^{DTW(Y_s, Y_m)}$. This
+where the similarity measure is $ k(Y_s, Y_m) = \gamma e^{DTW(Y_s, Y_m)} $. This
 measure is to be preserved in the latent spaces.
 
        $$ g_q(Y_s) = \mu_{sq} = \frac{1}{L_s} \sum_{n \in J_s} x_{nq} $$
@@ -523,15 +592,16 @@ A latent space with higher dimension will naturally make the reduction more robu
 When learning a stable flow field from several samples the field can degenerate with the inclusion of strong variable paths. Therefore it is important to ensure that the algorithm learns stable paths. This can be achieved by sampling uniform random sampling from all samples of the same activity.
 
 \todo{active learning - problem ??}
+
+*** Learning the motion flow field
+One problem we encounter by learning the motion flow field from several samples is complexity of the Gaussian Process. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take IVM as the sparse GP model both approaches can be seen as equivalent as the IVM will automatically take the most informative samples.
 ** Implementation
 *** Learning the flow field
-- Note taken on [2014-09-20 Sat 16:52]
 We deploy GP for learning the flow field which gives us several advantages.
 
 \missingfigure{latent space (several samples of one activity) with flow field}
 
 *** Finding appropriate kernel function
-*** 
 *** Software
 MATLAB - FGPLVM 
 Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
@@ -1170,3 +1240,4 @@ Add the following two files:
 
 [fn:1] Human Activity Detection from RGBD Images, Jaeyong Sung, Colin Ponce, Bart Selman, Ashutosh Saxena. In AAAI workshop on Pattern, Activity and Intent Recognition (PAIR), 2011. 
 [fn:2] RGB-D Camera-based Daily Living Activity Recognition - Chenyang Zhang, Student Member, IEEE and Yingli Tian, Senior Member, IEEE
+ 

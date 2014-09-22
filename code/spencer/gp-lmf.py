@@ -48,10 +48,12 @@ def calc_y(X):
     return X[1:-1], np.array(result)
 
 
-def learn_flow(X, y, l_scale=0.01, variance=1.0):
+def learn_flow(X, y, l_scale=0.1, variance=1.0):
 
-    kernel = GPy.kern.rbf(2, ARD=True, 
-                          lengthscale=(l_scale,l_scale), variance=variance)
+    dimensions = X.shape[1]
+    lengthscales = [ l_scale for d in range(dimensions)]
+    kernel = GPy.kern.rbf(dimensions, ARD=True, 
+                          lengthscale=lengthscales, variance=variance)
     m = GPRegression(X,y,kernel)
 
     m.optimize('bfgs', max_iters=200)
@@ -64,7 +66,7 @@ def learn_flows(X, Y, l_scale=0.01, variance=1.0 ):
         
 
 
-def energy(X, f1, f2):
+def energy(X, flow):
     return 0
 
 
@@ -74,33 +76,49 @@ def plot_flow_field(f, model, index=0):
     import matplotlib.pyplot as plt
 
     limit = max(abs(np.min(model.X)), np.max(model.X))
-    samples = 20
     dimensions = len(f)
+    samples = 1000**(1.0/dimensions)
+
     
     x = []
     for d in range(dimensions):
         x.append(np.linspace(-limit, limit, samples))
 
     x = list(np.meshgrid(*x))
-    X = np.array(zip(np.array(x).flatten()))
+    X = np.array(zip(*[np.array(el).flatten() for el in x]))
 
     vx = []
     for d in range(dimensions):
-        vx.append(f1.predict(X)[index])
+        vx.append(f[d].predict(X)[index])
     
 
     # plt.streamplot(x, y, vx, vy, color=)
 
-    plot(model);
-    quiver(x[0], x[1], y[0], y[1])
-    show()
+
+    if dimensions == 2:
+        plot(model);
+        quiver(x[0], x[1], vx[0], vx[1])
+    else:
+        if dimensions == 3:
+            from mpl_toolkits.mplot3d import axes3d
+
+            fig = plot3d(model)
+            ax = fig.gca(projection='3d')
+
+            ax.quiver3D(x[0].reshape(vx[0].shape[0],1), 
+                        x[1].reshape(vx[0].shape[0],1),
+                        x[2].reshape(vx[0].shape[0],1), 
+                        vx[0], vx[1], vx[2],
+                        length=0.1)
+
+    plt.show()
     
 
 
 
 def test(m):
     x, y = calc_y(m.X)
-    f = learn_flows(x,y)
+    f = learn_flows(x, y)
 
     plot_flow_field(f, m)
 
@@ -108,7 +126,7 @@ def test(m):
 _data_ = None
 
 
-def createModel(sigma=0.5, init='PCA', lengthscale=100.0):
+def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2):
     import GPy as GPy
     global _data_
 
@@ -137,10 +155,10 @@ def createModel(sigma=0.5, init='PCA', lengthscale=100.0):
 #         seq_index.append(index)
 
     back_kernel=GPy.kern.rbf(data[0]['Y'].shape[1], lengthscale=lengthscale)
-    mapping = GPy.mappings.Kernel(X=np.vstack([data[i]['Y'] for i in range(len(data))]), output_dim=2, kernel=back_kernel)
+    mapping = GPy.mappings.Kernel(X=np.vstack([data[i]['Y'] for i in range(len(data))]), output_dim=dimensions, kernel=back_kernel)
 
     m = GPLMF(np.vstack([data[i]['Y'] for i in range(len(data))]),
-                   2, seq_index, sigma=sigma, init=init, mapping=mapping)
+                   dimensions, seq_index, sigma=sigma, init=init, mapping=mapping)
 
     _data_ = data
     return m
@@ -168,3 +186,12 @@ def plot(m, visual=False):
         lvm_visualizer.close()
 
 
+def plot3d(m):
+    from mpl_toolkits.mplot3d import axes3d
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.scatter(m.X[:,0], m.X[:,1], m.X[:,2])
+
+    plt.show()
+    return fig
