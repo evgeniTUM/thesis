@@ -23,6 +23,7 @@
 
 #+LaTeX_HEADER: \usepackage{hyperref}
 
+
 #+LaTeX_HEADER: \usepackage{palatino}
 #+LaTeX_HEADER: \usepackage{pifont}
 #+LaTeX_HEADER: \usepackage{rotating}
@@ -99,15 +100,6 @@
 
 
 \setcounter{secnumdepth}{2}
-
-
-
-\let\origdoublepage\cleardoublepage
-\newcommand{\clearedoublepage}{
-\clearpage
-{\pagestyle{empty}\origdoublepage}
-}
-
 
 #+end_latex
 
@@ -216,14 +208,37 @@ One disadvantage of this distribution which we can see from the above formula is
 *** Multivariate gaussian distribution
 The multivariat gaussian distribution is the generalization of the gaussian distribution in higher dimensions.
 
-$$ \mathcal{N}(\bm{\mu}, \bm{\Sigma}) =  \frac{1}{  \sqrt{(2 \pi)^d} |\bm{\Sigma}|}
+$$ \mathcal{N}(\bm{\mu}, \bm{\Sigma}) =  \frac{1}{  \sqrt{(2 \pi)^d |\bm{\Sigma}|}}
 e^{-\frac{1}{2} (\bm{x} - \bm{\mu})^T \bm{\Sigma}^{-1}  (\bm{x} - \bm{\mu})} $$
 
 The two parameters of the distribution are:
 - mean :: $\bm{\mu} = E[x]$ Representing the most probable vector
-- covariance :: $\bm{\Sigma}$ Representing the covariance for each pair of the elements of the random vector: $\bm{\Sigma}_{ij} = Cov[x_i, x_j]$
+- covariance :: $\bm{\Sigma}$ Representing the mutual variance for each pair of the elements of the random vector: $\bm{\Sigma}_{ij} = Cov[x_i, x_j]$
 
 The exponent is mahalanobis distance, which measures the distance of a point to the ellipsoid defined by the covariance matrix.\todo{cite}
+
+*** Properties of gaussian distributions
+\todo{Write about total probability and such}
+Aside for being an appropriate model for many processes occurring in nature, gaussian distributions are also very nice to work with. The marginal and conditional of two gaussian distributions are also gaussian. 
+
+One reason GPs are straightforward and work is the math behind them. It is just linear algebra operations.
+
+Product of two multivariate gaussian distributions:
+
+$$ \mathcal{N}(\bm{x}; \bm{\mu_x}, \bm{\Sigma_x} ) \mathcal{N}(\bm{y}; \bm{\mu_y}, \bm{\Sigma_y} ) =  
+\frac{1}{  \sqrt{(2 \pi)^d |\bm{\Sigma}|}} e^{-\frac{1}{2} (\bm{x} - \bm{\mu_x})^T \bm{\Sigma}^{-1}  (\bm{x} - \bm{\mu})} 
+\frac{1}{  \sqrt{(2 \pi)^d |\bm{\Sigma}|}} e^{-\frac{1}{2} (\bm{x} - \bm{\mu_y})^T \bm{\Sigma}^{-1}  (\bm{x} - \bm{\mu_y})} $$
+
+
+Marginal of a multivariate gaussian:
+
+Conditional of a multivariate gaussian: 
+
+
+
+\todo{cite Gaussian Winter School slides Philipp Hennig}
+
+
 
 ** Gaussian Processes
 Consider the multivariate gaussian distribution above. If we want to model the distribution of discrete function defined over a finite interval,
@@ -232,13 +247,17 @@ we can treat each element of the vector $\bm{x}$ as an point of the function. Th
 In this case the mean is a point in the function space, thus a function $E[\bm{x}] = f(x)$. And because of the fact that we now have infinite dimensions the covariance can be seen as an "/infinite/ matrix/", thus a function of two elements: $Cov(x,y)$.
  
 
-Thus it can be seen as a gaussian distribution over the function space. ebib:rasmussen_gaussian_2006
+Thus it can be seen as a gaussian distribution over the function space. ebib:rasmu
+
+
+
+ssen_gaussian_2006
 
 A gaussian process can be also seen as the bayesean posterior consisting of the product of the (gaussian) functional prior and the observed samples.??? Another view is a kernelized regression with infinite parameters. ebib:rasmussen_gaussian_2006
 
 A gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting which is an important property as it not needed to perform cross validation.
 
-
+*** ARD kernel
 *** Regression
 \missingfigure{nice GP regression example}
 
@@ -291,43 +310,43 @@ A GP saves all data points...
 
 The GP-LVM performs a non-linear dimensionality reduction from an observed space$X$ to a latent space $Y$ ebib:lawrence_probabilistic_2005
 It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a gaussian prior for the mapping $f$. Technically it a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from observed space to one latent dimension. \todo{formulas etc.} 
-The model learns a (non-linear) mapping from latent space to observed space. This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a very strong latent variable model.
+The model learns a (non-linear) mapping from latent space to observed space. This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a non-linear latent variable model.
 
 \missingfigure{example GP-LVM, skeleton}
 
-*** PCA
+*** Principal Components Analysis
+The Principal Components Analysis is an method which.
+
+This method has an 
 Tipping and Bishop, Journal of the Royal Statistical Society (1999)
-
-
+  
 *** Back-constraints GP-LVM
 One problem with this model is that it does not preserve local distances in the latent space.This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $g_i(y_i) = x_i$ is introduced which constrains the points in latent space to be more near if they are also near in the observed space. Instead of optimizing directly on $X$ the back-constrained GP-LVM optimizes using the  mapping instead. 
 
 Having this back-constraints also gives us a mapping from observed space to latent space which can be used to project a new sample into the latent space without costly maximum likelihood estimates. 
 \missingfigure{example BCGPLVM}
- 
-*** Bayesian GP-LVM
-An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $X $. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
 
 *** Discriminative GP-LVM
 Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using the GDA \todo{elaborate GDA} a prior is being enforced on the LVM which ensures that samples from one class are more clustered and different classes are more separated in the latent space. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
+ 
+*** Other variants
+**** Bayesian GP-LVM
+An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $X$. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
 
+**** Subspace GP-LVM
 
-*** Subspace GP-LVM
-
-*** Manifold Relevance Determination
+**** Manifold Relevance Determination
 Combining the Subspace GP-LVM with the variational approach and the ARD kernel it is possible to learn the manifold \todo{explain MRD}.ebib:damianou_manifold_2012
 
-*** GP-LVM for human motion
-As the space of human motion is high-dimensional (spatio-temporal) dimensionality reduction is crucial for a number of models dealing with human motion (e.g. ebib:fan_gaussian_2011l).
-The GP-LVM preserve the distances in the mapping and are therefore suitable to model human motion with high noise of the poses see Urtasun DGPLVM
-Newest addition is ebib:jiang_modeling_2014
-
 *** Advantages
-
 *** Disadvantages
 
 **** The objective function is non-convex
 This in fact is the biggest problem as it limits its use on real world data, because for more complex data and (latent manifold structures) there will likely be many local minima. For this reason it is crucial to choose a good initialization. Examples are PCA, Local Linear Embedding or Isomap.
+*** GP-LVM for human motion
+As the space of human motion is high-dimensional (spatio-temporal) dimensionality reduction is crucial for a number of models dealing with human motion (e.g. ebib:fan_gaussian_2011l).
+The GP-LVM preserve the distances in the mapping and are therefore suitable to model human motion with high noise of the poses see Urtasun DGPLVM
+Newest addition is ebib:jiang_modeling_2014
 
 ** Dynamic Time Warping
 The Dynamic Time Warping is an algorithm which tries to find a minimal warping path between two sequences. Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value.
@@ -403,9 +422,13 @@ The JGPM models the activity and the gait in an common latent space. This way se
 ** See also 
 A class of space-varying parametric motion fields for human activity recognition
 
-
-* Approach
 ** Analysis
+Skeleton features are sufficient but other features can be useful:
+- hand recognition
+- head pose recognition
+- situation awareness
+  ...
+  
 *** Observations
 - Difference between activity and action
   Activities are composed of actions
@@ -465,6 +488,9 @@ This way we can prune a large number of incorrect poses and because we model the
 ***** Learn a model of an activity and compare it with the help of a covariance function
 **** Analogy LVM <-> marionettes
 
+
+
+* Approach
 ** Datasets
 *** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
 
@@ -634,6 +660,22 @@ digraph pipeline {
 
 #+RESULTS:
 [[file:figures/gplmf-approach.png]]
+
+*** Learning the flow field
+We deploy GP for learning the flow field which gives us several advantages.
+
+\missingfigure{latent space (several samples of one activity) with flow field}
+**** Effects of the hyperparameters
+
+Changing the /lengthscale/ defines how much each point is contributing to the regression process. It can be interpreted as a smoothness factor which governs how strong the interpolation of the flow field is performed on the latent points.
+
+Changing the signal variance controls how much 
+
+
+\missingfigure{effect of hyperparameters on the resulting flow field}
+
+
+
 *** Interpretation
 The proposed model has a natural interpretation. A point represents a pose in latent space and an activity is a trajectory in time inside the same space. With the flow field we learn the motion tendencies for each pose. When performing recognition we for each separate flow the energy needed to traverse the flow. If we consider that the point has a mass we can model the speed at which activities are being done. This way we can recognize when a point leaves an activity, which represents a /motion current/, and passes over to some other activity.
 
@@ -674,25 +716,8 @@ $$ E_{t_1,t_n} = \sum_{i \in \mathcal{T}, j \in \mathcal{T}} E_{i,j} + regulariz
 
 where the regularizer ensures that we do not change flow fields often...
 
-* Implementation
 
-** Finding appropriate kernel function
-
-
-
-** Learning the flow field
-We deploy GP for learning the flow field which gives us several advantages.
-
-\missingfigure{latent space (several samples of one activity) with flow field}
-*** Effects of the hyperparameters
-
-Changing the /lengthscale/ defines how much each point is contributing to the regression process. It can be interpreted as a smoothness factor which governs how strong the interpolation of the flow field is performed on the latent points.
-
-Changing the signal variance controls how much 
-
-
-\missingfigure{effect of hyperparameters on the resulting flow field}
-
+* Results
 
 ** Software
 MATLAB - FGPLVM 
