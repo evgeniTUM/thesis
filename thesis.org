@@ -13,7 +13,7 @@
 #+AUTHOR: Evgeni Pavlidis
 
 #+LaTeX_CLASS: scrbook
-#+LaTeX_CLASS_OPTIONS: [11pt,a4paper,bibtotoc,idxtotoc,headsepline,footsepline,footexclude,BCOR12mm,DIV13,openany]
+#+LaTeX_CLASS_OPTIONS: [11pt,a4paper,bibtotoc,idxtotoc,headsepline,footsepline,footexclude,BCOR12mm,DIV13]
 #+LaTeX_CMD: xelatex
 
 # --- Packages
@@ -44,6 +44,11 @@
 #+LaTeX_HEADER: \usepackage{setspace}
 
 
+#+LaTeX_HEADER: \usepackage{titlesec}
+#+LaTeX_HEADER: \usepackage{emptypage}
+#+LaTeX_HEADER: \usepackage{styles/tumlogo}
+
+
 # --- Options
 #
 #+LaTeX_HEADER: \pagestyle{scrheadings}
@@ -56,8 +61,20 @@
 #+LaTeX_HEADER: \renewcommand{\maketitle}{
 #+LaTeX_HEADER: \pagenumbering{roman} 
 #+LaTeX_HEADER:
-#+LaTeX_HEADER: \OldMaketitle
 #+LaTeX_HEADER: }
+
+
+
+#+begin_latex
+\include{components/info}
+\include{components/cover}
+\include{components/titlepage}
+
+\include{components/abstract}
+\include{components/abstract_german}
+\include{components/disclaimer}
+#+end_latex
+
 
 
 
@@ -75,9 +92,23 @@
 
 
 #+begin_latex
+
 \newcommand{\TODO}[1]{\todo[color=red]{#1}}
 \listoftodos 
 \pagenumbering{arabic} 
+
+
+\setcounter{secnumdepth}{2}
+
+
+
+\let\origdoublepage\cleardoublepage
+\newcommand{\clearedoublepage}{
+\clearpage
+{\pagestyle{empty}\origdoublepage}
+}
+
+
 #+end_latex
 
 
@@ -87,14 +118,21 @@
 
 
 * Introduction
-
 ** Motivation
+Activity recognition is a big research field in machine learning and robotics. Being able to infer what human actors are doing helps in many practical robotic tasks. An example is doing short-time prediction for collision-avoidance. Moreover in social robotics it is crucial to know what humans are doing when reasoning about the current state of the robot's environment.
+
+To do activity recognition the human pose has to be inferred for each frame.  
+With the advent and further development of RGBD (color and depth) sensors it is now possible to perform skeletal tracking of persons. This allows us to decouple pose estimation and activity learning, which make the problem a bit easier.
+
+For real robotic tasks it is very important that the activity recognition is online i.e. runs in real-time. 
+
+** Problem statement
 *** Online (active) learning of human activities
 Use gaussian processes to learn new activities in real time
 *** Evaluate Gaussian processes against different ml algorithms for activity recognition
 Evaluate the performance of GPs in relation to the other solutions
 
-** Scope
+*** Scope
 *** The SPENCER project
 \missingfigure{spencer prototype robot (Bender B21)}
 
@@ -114,17 +152,14 @@ With the modern technologies (ms Kinect SDK, primesense ...) it is possible to d
 - Introduction ::
    The first chapter introduced the topic of this work. The motivation and the scope is explained.
 - Basic Concepts ::
-   This chapters summarizes some basic concepts and models used in our approach. For the most part Gaussian Process Regression and Gaussian Process - Latent Variable Models are being explained. It also gives an overview of methods used in similar approaches in the related works section, such as \todo{overview aproaches related work }
-- Related Work
+   This chapters summarizes some basic concepts and models used in our approach. For the most part Gaussian Process Regression and Gaussian Process - Latent Variable Models are being explained. 
+- Related Work :: The third chapter gives an overview of methods used in similar approaches.
+- Approach :: The fourth chapter discusses first the advantages and disadvantages of some existing approaches towards online activity recognition. Then it presents two approaches to real time activity recognition. 
+- Implementation :: In the fifth chapter the two approaches are being discussed. The first one is an implementation of "Discriminative Sequence Back-constrained {GP}-{LVM} for {MOCAP} based Action Recognition}" ebib:_discriminative_2013. The second one being a novel approach which is learns a motion flow field in the latent space through a Gaussian Process Regression.
+- Results and Outlook :: The last chapter summarizes the results of the two approaches and gives a brief outlook of future improvements.
 
-- Analysis
-  The fourth chapter discusses the advantages and disadvantages of some existing approaches towards online activity recognition.
-- Approach
-  In the fifth chapter the two approaches are being discussed. The first one is an implementation of "Discriminative Sequence Back-constrained {GP}-{LVM} for {MOCAP} based Action Recognition}" ebib:_discriminative_2013. The second one being a novel approach which is learns a motion flow field in the latent space through a Gaussian Process Regression.
-- Results and Outlook
-  The last chapter summarizes the results of the two approaches and gives a brief outlook of future improvements.
 * Basic Concepts
-This chapter introduces some basic concepts needed to understand the rest of this work. First an high-level overview is given on machine learning and its terminology. After that the gaussian distribution is presented in its univariate multivariate variants. Following is an explanation of Gaussian Processes, their different interpretations and properties. Last the Gaussian Process - Latent Variable Model is being introduced along with some extensions for learning a backward mapping and optimizing it for discrimination in the case of multiple-classes. 
+This chapter introduces some basic concepts needed to understand the proposed approaches. First an high-level overview is given on machine learning and its terminology. After that the gaussian distribution is presented in its univariate and multivariate variants. Following is an explanation of Gaussian Processes, their different interpretations and properties. Last the Gaussian Process - Latent Variable Model is being introduced along with some extensions for learning a backward mapping and optimizing it for discrimination in the case of multiple-classes. 
  
 ** Machine Learning
 *** Supervised learning
@@ -190,7 +225,6 @@ The two parameters of the distribution are:
 
 The exponent is mahalanobis distance, which measures the distance of a point to the ellipsoid defined by the covariance matrix.\todo{cite}
 
-
 ** Gaussian Processes
 Consider the multivariate gaussian distribution above. If we want to model the distribution of discrete function defined over a finite interval,
 we can treat each element of the vector $\bm{x}$ as an point of the function. Thus we can we can view the multivariate gaussian distribution as a probability function over the function space. Letting the dimensionality $d$ go to infinity (the distance between each point goes to zero) we can model continuous functions. ... ueberleitung GPs ... 
@@ -198,14 +232,11 @@ we can treat each element of the vector $\bm{x}$ as an point of the function. Th
 In this case the mean is a point in the function space, thus a function $E[\bm{x}] = f(x)$. And because of the fact that we now have infinite dimensions the covariance can be seen as an "/infinite/ matrix/", thus a function of two elements: $Cov(x,y)$.
  
 
-It can be seen as a gaussian distribution in function space. ebib:rasmussen_gaussian_2006
+Thus it can be seen as a gaussian distribution over the function space. ebib:rasmussen_gaussian_2006
 
-A gaussian process can be also seen as the bayesean posterior consisting of
-the product of the (gaussian) functional prior and the observed
-samples.??? Another view is a kernelized regression with infinite
-parameters. ebib:rasmussen_gaussian_2006
+A gaussian process can be also seen as the bayesean posterior consisting of the product of the (gaussian) functional prior and the observed samples.??? Another view is a kernelized regression with infinite parameters. ebib:rasmussen_gaussian_2006
 
-A gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting. 
+A gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting which is an important property as it not needed to perform cross validation.
 
 
 *** Regression
@@ -298,6 +329,13 @@ Newest addition is ebib:jiang_modeling_2014
 **** The objective function is non-convex
 This in fact is the biggest problem as it limits its use on real world data, because for more complex data and (latent manifold structures) there will likely be many local minima. For this reason it is crucial to choose a good initialization. Examples are PCA, Local Linear Embedding or Isomap.
 
+** Dynamic Time Warping
+The Dynamic Time Warping is an algorithm which tries to find a minimal warping path between two sequences. Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value.
+
+\missingfigure{algorithm}
+
+We consider DTW to be a distance which is not entirely correct as the triangle inequality does not hold. Nevertheless it gives us a notion of how similar two time series are and since it is non-negative ( $d(x,y) >= 0$ ), symmetric ( $d(x,y) = d(y,x)$ ) and respects the identity property ( $d(x,x) = 0$ ) it can be used to define a meaningful kernel. ebib:shimodaira_dynamic_2001
+
 * Related work
 ** Overview
 *** a survey on vision based action recognition ebib:poppe_survey_2010
@@ -307,6 +345,7 @@ This in fact is the biggest problem as it limits its use on real world data, bec
 
 *** Motion energy image
 
+** Gaussian Mixture Based HMM for Human DailyActivity Recognition Using 3D Skeleton Features
 ** Sung et al. ebib:sung_unstructured_2012
 *** Features: Skeleton data + HOG features of RGBD image and depth image 
 *** Naive classification: SVM
@@ -365,78 +404,67 @@ The JGPM models the activity and the gait in an common latent space. This way se
 A class of space-varying parametric motion fields for human activity recognition
 
 
-* Analysis
-** Observations
-- Person identification through covariance matrix of movement see. ebib:kumar_human_2012
+* Approach
+** Analysis
+*** Observations
 - Difference between activity and action
   Activities are composed of actions
 - Context information can tremendously help in classification of activities (e.g. object detection and human anticipation)
 - Skeleton data is sufficient for classification (ebib:ibbt_does_????)
   and also robust to changes in appearance (most state-of-the-art methods work with visual features)
   and also unobtrusive and sensible data doesn't need to be stored (like face features etc.)
-- Knowing which activity a human performs helps tremendously in classifying age and gender! (in the case that we do both)
-** Approaches
-*** make the features invariant ebib:theodorakopoulos_pose-based_2014 
-- view invariant (pos rel to torso)
-- scale invariant (normalize length...)
-   ... time ?? invariant
-*** Discriminative Sequence BCGPLVM
+*** Approaches
+**** Discriminative Sequence BCGPLVM
 Use this to find the activity
-**** DTW between walking and walking backwards very big ...
-**** not taking temporal dimension into account
-*** Use the Joint Gate and Pose Manifold for age and gender detection
-*** GPDM
-**** approach to classify by hyperparameters not optimal
-*** VarGPDS
-**** very slow computation
-*** Classify by dynamics of the skeleton (this should bring good classification)
-**** GPDM can model the dynamics of the movement
-**** has good properties (gaussian processes)
-**** has intrinsic dim reduction
-**** ?? shared GP-LVM to model different activities in the same latent manifold ??
-** Problems and solutions
-*** limited sample data - probabilistic model + discriminative
+***** DTW between walking and walking backwards very big ...
+***** not taking temporal dimension into account
+**** GPDM
+***** approach to classify by hyperparameters not optimal
+**** VarGPDS
+***** very slow computation
+**** Classify by dynamics of the skeleton (this should bring good classification)
+***** GPDM can model the dynamics of the movement
+***** has good properties (gaussian processes)
+***** has intrinsic dim reduction
+***** ?? shared GP-LVM to model different activities in the same latent manifold ??
+*** Problems and solutions
+**** limited sample data - probabilistic model + discriminative
 Probabilistic (and generative ??) models are more accurate using fewer samples, because they model the probability directly ...  
-*** high dimensional - dim reduction(gp-lvm)
+**** high dimensional - dim reduction(gp-lvm)
 
-*** classification - BC GP-LVM + discriminative
-*** time series data - GPDM
+**** classification - BC GP-LVM + discriminative
+**** time series data - GPDM
 An can be modeled as a sequence of consecutive poses. Hence a dynamical model. By using a dynamical model classification becomes more discriminative. 
-*** confidence is important !!!
+**** confidence is important !!!
 Using a probabilistic model (especially gaussian processes) we also get a confidence which in turn can be used for active learning
-*** high dim. noise => GP-LVM is very robust because of the nature of optimization (distance is preserved instead of locality)
-** Assumtpions
-*** Skeleton tracking is correct and stable
+**** high dim. noise => GP-LVM is very robust because of the nature of optimization (distance is preserved instead of locality)
+*** Assumtpions
+**** Skeleton tracking is correct and stable
 For the algorithm we assume that the skeleton extraction from RGBD data works as expected.
 This is far from the truth with current skeleton tracking algorithms but we also get confidences of the poses.
 This way we can prune a large number of incorrect poses and because we model the dynamics and do not compare poses this is not a big problem.
-*** Smooth skeleton transition !!!
-*** Correctly labeled samples (no outliers)
-** Ideas
-*** Presentation
-**** make clear what is your contribution !!!
-**** Black slides (important points)
-*** Model
-**** Take best three activites (uncertainty) with threshold
-**** SPENCER: can help for (head tracking (bounding box), and pose estimation)
-**** Use hand and/or head features
-***** Head direction is important
-***** Hand structure is very important for most tasks
-***** Object interrelation ???
-***** Use HOG for hand features only
-**** Bhattacharyya distance
+**** Smooth skeleton transition !!!
+**** Correctly labeled samples (no outliers)
+*** Ideas
+**** Model
+***** Use hand and/or head features
+****** Head direction is important
+****** Hand structure is very important for most tasks
+****** Object interrelation ???
+****** Use HOG for hand features only
+***** Bhattacharyya distance
 
-**** bag of features 
+***** bag of features 
 - no time dependency
 - no online capable because of k-means clustering
-**** maximum entropy markov model
+***** maximum entropy markov model
 - complex, performance not that good
-**** GP-LVM
+***** GP-LVM
 - good to reduce the dimensionality
 - used in some papers
-**** Learn a model of an activity and compare it with the help of a covariance function
-*** Analogy LVM <-> marionettes
-* Approach
+***** Learn a model of an activity and compare it with the help of a covariance function
+**** Analogy LVM <-> marionettes
+
 ** Datasets
 *** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
 
@@ -449,12 +477,26 @@ The data set s consist of an sequence of frames which include:
 - RGBD data
 - Skeleton information: (joint position and orientation)
 - annotated meta information (e.g. activity)
+** Feature extraction
+We get the joint positions and the angles between them in the camera frame defined by the used depth camera (.e.g Microsoft's Kinect). We want these data in the frame of the skeleton. When extracting features we have to make sure that we have scale and view invariant features of the skeleton.
+
+One way to achieve scale invariance is to normalize all link lengths in respect to the torso link. To make the pose view invariant we have to define a local skeleton frame which captures the skeletons /orientation/ in the world coordinate system.
+
+\missingfigure{local skeleton frame}
+
+Another way to achieve scale and view invariance is to not consider the 3D points of the joints all together but instead to take only the angles of the joints as features.
+
+
+An interesting approach is used in ebib:theodorakopoulos_pose-based_2014, which is to define a polar coordinate frame for each joint and use the two angles as features. This way we also reduce the observation space.
+
+As discussed in [[Related Work]] many methods also make the extracted features time invariant (e.g. Eigenjoints). However since we want to model the dynamics we do not use time invariant features.
+
 ** Dynamic time warping with mahalanobis distance 
 :( exists already 
 Learning Mahalanobis distance for DTW based online signature verification 
 maybe use fisher discriminant analysis as in the disr. seqBCGPLVM
 
-** TODO Discriminative Sequence Back-Constrained GP-LVM
+** Discriminative Sequence Back-Constrained GP-LVM
 In the paper "Discriminative Sequence Back-Constrained GP-LVM for MOCAP Based
 Action Recognition"ebib:_discriminative_2013 the authors propose a method for
 classifying MOCAP actions.
@@ -624,17 +666,25 @@ When learning a stable flow field from several samples the field can degenerate 
 
 *** Learning the motion flow field
 One problem we encounter by learning the motion flow field from several samples is complexity of the Gaussian Process. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take IVM as the sparse GP model both approaches can be seen as equivalent as the IVM will automatically take the most informative samples.
-** Implementation
 
-*** Finding appropriate kernel function
+*** Recognition
+Energy minimization:
+
+$$ E_{t_1,t_n} = \sum_{i \in \mathcal{T}, j \in \mathcal{T}} E_{i,j} + regularizer $$
+
+where the regularizer ensures that we do not change flow fields often...
+
+* Implementation
+
+** Finding appropriate kernel function
 
 
 
-*** Learning the flow field
+** Learning the flow field
 We deploy GP for learning the flow field which gives us several advantages.
 
 \missingfigure{latent space (several samples of one activity) with flow field}
-**** Effects of the hyperparameters
+*** Effects of the hyperparameters
 
 Changing the /lengthscale/ defines how much each point is contributing to the regression process. It can be interpreted as a smoothness factor which governs how strong the interpolation of the flow field is performed on the latent points.
 
@@ -644,7 +694,7 @@ Changing the signal variance controls how much
 \missingfigure{effect of hyperparameters on the resulting flow field}
 
 
-*** Software
+** Software
 MATLAB - FGPLVM 
 Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
 - Emacs/Org-mode
@@ -657,10 +707,13 @@ Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
 
 
 
-** Bibliography
-#+begin_latex   
-  \bibliographystyle{plain}
-  \bibliography{bibliography}
+* Conclusions and Outlook
+
+* Latex end                                                       :noheading:
+#+begin_latex
+\listoffigures
+\bibliographystyle{plain}
+\bibliography{bibliography}
 #+end_latex
 
 
