@@ -6,6 +6,7 @@ def dtw(s, t, dist=None):
     n = len(s)
     m = len(t)
 
+    # use eculidean distance if no function specified
     if dist is None:
         dist = lambda x, y: np.linalg.norm(x-y)
 
