@@ -93,7 +93,7 @@ from GPy.models import SparseGPLVM
 from GPy.models import BCGPLVM
 
 
-class SeqBCGPLVM(GPLVM):
+class SeqBCGPLVM(SparseGPLVM):
     """
     Sequence back-constrained Gaussian Process Latent Variable Model
 
@@ -118,9 +118,8 @@ class SeqBCGPLVM(GPLVM):
         self.seq_index = seq_index
         self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
 
-        print mapping
 
-        GPLVM.__init__(self, Y, input_dim, init, X, kernel, normalize_Y)
+        SparseGPLVM.__init__(self, Y, input_dim, init=init, kernel=kernel, num_inducing=100)
 
 
         self.prior = DiscriminativePrior(seq_index)
@@ -144,11 +143,11 @@ class SeqBCGPLVM(GPLVM):
 
         super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
 
-    def DDlog_prior(self):
+    def log_prior(self):
         return (1.0/self.sigma**2) * self.prior.lnpdf(self.X) 
         
     
-    def DD_log_prior_gradients(self):
+    def _log_prior_gradients(self):
         return (1.0/self.sigma**2) * np.hstack((self.prior.lnpdf_grad(self.X), 
                                                 np.zeros(self._get_params().size - self.X.size))) 
             
@@ -165,7 +164,7 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
     seq_index = [0]
     index = 0
 # walk sequences
-    for i in range(2):
+    for i in range(3):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]

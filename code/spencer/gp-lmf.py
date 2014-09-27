@@ -8,6 +8,8 @@ from GPy.models import BCGPLVM
 from GPy.models import GPRegression
 import GPy
 
+from dataset import DatasetPerson
+
 class GPLMF(BCGPLVM):
     """
     Gaussian Process - Latent Motion Flow
@@ -35,7 +37,7 @@ class GPLMF(BCGPLVM):
             #SparseGPLVM.__init__(self, Y, input_dim, kernel=kernel, init=init, num_inducing=20)
         else:
             print "Using: back-constraints"
-            BCGPLVM.__init__(self, Y, input_dim, kernel=kernel, mapping=mapping)
+            BCGPLVM.__init__(self, Y, input_dim, kernel=kernel, mapping=mapping, X=X)
 
 
 
@@ -57,11 +59,11 @@ def learn_flow(X, y, l_scale=0.1, variance=1.0):
                           lengthscale=lengthscales, variance=variance)
     m = GPRegression(X,y,kernel)
 
-    m.optimize('bfgs', max_iters=200)
+    m.optimize('bfgs', max_iters=1000)
     
     return m
 
-def learn_flows(X, Y, l_scale=1.0, variance=0.00001 ):
+def learn_flows(X, Y, l_scale=0.3, variance=0.0000001 ):
     return [ learn_flow(X, Y[d], l_scale, variance)
              for d in range(Y.shape[0])]
         
@@ -129,57 +131,81 @@ _data_ = None
 
 
 def get_mocap_data():
+    global _data_
+
     data = []
     seq_index = [0]
     class_index = [0]
     index = 0
 
-    # walk sequences
-    for i in range(1):
-        data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
-        data[i]['Y'][:, 0:3] = 0.0
-        index += data[i]['Y'].shape[0]
-        seq_index.append(index)
-    class_index.append(index)
+    count = 0
+
+    # # walk sequences
+    # for i in range(count,count+1):
+    #     data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
+    #     data[i]['Y'][:, 0:3] = 0.0
+    #     index += data[i]['Y'].shape[0]
+    #     seq_index.append(index)
+    #     count += 1
+    # class_index.append(index)
 
 
         
 # # jump sequences
-#     for i in range(3,5):
-#         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
+#     for i in range(count,count+2):
+#         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-count)]))
 #         data[i]['Y'][:, 0:3] = 0.0
 #         index += data[i]['Y'].shape[0]
 #         seq_index.append(index)
+#         count += 1
 #     class_index.append(index)
 
-# # boxing
-#     for i in range(5,7):
-#         data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-5)]))
-#         data[i]['Y'][:, 0:3] = 0.0
-#         index += data[i]['Y'].shape[0]
-#         seq_index.append(index)
-#     class_index.append(index)
+# boxing
+    for i in range(count,count+2):
+        data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-count)]))
+        data[i]['Y'][:, 0:3] = 0.0
+        index += data[i]['Y'].shape[0]
+        seq_index.append(index)
+        count += 1
+    class_index.append(index)
 
 
+    _data_ = data
     data = np.vstack([data[i]['Y'] for i in range(len(data))])
 
     return data, seq_index, class_index
 
 
 
-def createModel(sigma=0.5, init='Random', lengthscale=1.0, dimensions=2):
-    global _data_
+def get_human_activity_data():
+    data_set = DatasetPerson()
+    data = data_set.get_processed_data()
+
+    data = data[::(data.shape[0]/200)]
+
+    class_index = [0]
+    seq_index = [0]
+    class_index.append(data.shape[0])
+    seq_index.append(data.shape[0])
+    
+    return data, seq_index, class_index
+
+
+
+def createModel(sigma=0.5, init='PCA', lengthscale=1.0, dimensions=2, X=None):
 
     data, seq_index, class_index = get_mocap_data()
+    # data, seq_index, class_index = get_human_activity_data()
 
     back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)
     mapping = GPy.mappings.Kernel(X=data, output_dim=dimensions, kernel=back_kernel)
 
     m = GPLMF(data, dimensions, seq_index, class_index=class_index,
-              sigma=sigma, init=init, mapping=mapping)
+              sigma=sigma, init=init, mapping=mapping, X=X)
 
-    _data_ = data
     return m
+
+
 
 
 def seq_index2labels(seq_index):
