@@ -124,10 +124,26 @@ With the advent and further development of RGBD (color and depth) sensors it is 
 
 For real robotic tasks it is very important that the activity recognition is online i.e. runs in real-time. 
 
+Advantages of skeletal features are that no person sensitive information has to be processed by the learning algorithm. In the context of the SPENCER project this is an important prerequisite. Another advantage is also that the skeletal features are very informative for activity recognition. Also beginning to concept an algorithm that builds on top of robust pose estimation reduces the complexity, as we can fully ignore the pose estimation problem.
+
 ** Problem statement
 
 \todo{make a distinction between action and activity}
 \todo{make a distinction between online recognition and online learning !!! maybe change online to real-time}
+
+The biggest challenge in activity recognition is classification of time series data. In contrast to the simpler sample model, here we have to classify sequences. Therefore appropriate models have to be implemented that take the dynamics into account.
+
+Also for online activity recognition we have to classify incomplete data consisting of subsequences. This makes the problem more challenging and reduces the pool of methods that can be used for the classification.
+
+We identify three requirements for a practical activity recognition system:
+1. Online recognition\\
+   The algorithm has to be able to do real-time classification as the sequence is progressing.
+2. Classification of incomplete sequences\\
+   This follows directly from the first requirement. There should be no assumptions about the activities regarding completeness, length or periodicity.
+3. Novelty detection\\
+   The algorithm should be able to recognize unseen activities. Optimally it should be possible to also recognize when an unknown activity started and finished. This way automatic segmentation will be possible and will considerably reduce the supervised learning time.
+
+Nice to have... online learning, active learning and novelty detection!
 
 *** Online (active) learning of human activities
 Use gaussian processes to learn new activities in real time
@@ -153,9 +169,9 @@ We assume a basic understanding in /Linear Algebra/ and /Probability theory/ . A
 - Parameters lowercase greek letters
 ** Outline
 - Introduction ::
-   The first chapter introduced the topic of this work. The motivation and the scope is explained.
-- Basic Concepts ::
-   This chapters summarizes some basic concepts and models used in our approach. It begins with an overview of machine learning and introduces the multivariate gaussian distribution. Then an emphasis is led onGaussian Process Regression and Gaussian Process - Latent Variable Models. 
+   This chapter introduced the topic of this work. The motivation and the scope is explained.
+- Background ::
+   The second chapter summarizes some basic concepts and models that are prerequisites for our approach. It begins with an overview of machine learning and introduces the multivariate gaussian distribution. Then an emphasis is led on Gaussian Process Regression and Gaussian Process - Latent Variable Models, which is an unsupervised learning method for dimensionality reduction. Last the Dynamic Time Warping algorithm, which is used for sequence alignment, is explained.
 - Related Work :: The third chapter gives an overview of methods used in similar approaches and then analyses strength and weaknesses of these methods in regards to online activity recognition.
 - Approach :: The fourth chapter presents two approaches to online activity recognition and their implementations. The first one is an implementation of "Discriminative Sequence Back-constrained {GP}-{LVM} for {MOCAP} based Action Recognition}" ebib:_discriminative_2013. The second one is a novel approach which learns a dense motion flow field in latent space through Gaussian Process Regression.
 - Evaluation :: In the fifth chapter the two approaches are being evaluated and discussed. 
@@ -380,9 +396,10 @@ The author in Exploring model selection techniques for
 nonlinear dimensionality reduction
 also suggest to use ISOMAP or LLE to initialize the GPLVM and argues that direct optimization of the GP-LVM is very difficult.
 ** Dynamic Time Warping
-The Dynamic Time Warping is an algorithm which tries to find a minimal warping path between two sequences. Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value. The sequences can be of arbitrary length. 
+The Dynamic Time Warping is an algorithm which tries to find a minimal warping path between two sequences. The sequences can be of arbitrary length.
+Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value.  
 
-The recursive definitions -- excluding some corner cases -- reveals the workings of this method.
+The recursive definition -- excluding some corner cases -- reveals the workings of this method.
 
 #+begin_latex
 $$
@@ -565,17 +582,28 @@ An interesting approach is used in ebib:theodorakopoulos_pose-based_2014, which 
 
 As discussed in [[Related Work]] many methods also make the extracted features time invariant (e.g. Eigenjoints). However since we want to include the dynamics in our model we do not use time invariant features.
 
-** Dynamic time warping with mahalanobis distance 
-Popular choices for the distance function used in Dynamic Time Warping is the euclidean distance if 3D points are used as features and the geodesic distance for angles. The problem with these two distances is that they are just the sum of the individual feature differences. As the dimensionality grows this metric becomes less informative. In the case of human poses we have a certain notion of which poses are similar and which are far apart. Maybe this is due to the fact that we inherently know -- or classify -- to which activity the pose corresponds to and have therefore some notion  of closeness which cannot be approximated with the euclidean distance. Poses from different activities will most likely also seem to be more or less similar depending on the activity.
+At first we concentrated our efforts for learning with the MOCAP data. In theory the data collected from the kinect should be equivalent. One difference is the high noise in the pose estimation, but due to the fact that the GP-LVM preserves distances rather than locality this problem is mitigated to a certain degree.
 
-We can transfer this knowledge by using the Mahalanobis distance instead of the euclidean distance when computing the similarity of two pose sequences. By computing the covariance for each activity we have some notion of the variance across all feature dimensions for a specific class. This way we can capture -- to some extent -- the variability for each class. Now we can compute a similarity measure with a new sequence $x_new$ for each class and each sample of this class:
+** Dynamic time warping with mahalanobis distance 
+The Dynamic Time Warping algorithm is a prominent and very effective choice for computing similarity between two sequences. The problem with this approach, in the context of activity recognition, is how to define the distance metric between two poses.
+
+Popular choices for the distance function is the euclidean distance, if 3D points are used as features, and the geodesic distance for angles. The problem with these two distances is that they are just the sum of the individual feature differences. As the dimensionality grows this metric becomes less informative. 
+
+In the case of human poses we have a certain notion of which poses are similar and which are far apart. Maybe this is due to the fact that we inherently know -- or classify -- to which activity the pose corresponds to and have therefore some notion of closeness with respect to an activity which cannot be approximated with the euclidean distance. Poses from different activities will most likely also seem to be more or less similar depending how similar the actions are.
+
+One idea to transfer this knowledge is by using the Mahalanobis distance instead of the euclidean distance when computing the similarity of two pose sequences. By computing the covariance for each activity we have some notion of the variance across all feature dimensions for a specific class. This way we can capture -- to some extent -- the variability for each class. Now we can compute a similarity measure with a new sequence $x_new$ for each class and each sample of this class:
 
 $$ \text{similarity for class i with sample x} = \text{DTW}_{\text{mahalanobis}(\bm{\Sigma_i^-1})}(x, x_{new}) $$ 
 
+This way the distance error is distributed by a way defined by the variance across each dimension.
+
 A similar idea was also proposed in the context of handwritten signature verification, which uses just one covariance matrix.
 Learning Mahalanobis distance for DTW based online signature verification
-where the a covariance matrix was determined such that, just like in the case of Discriminant GP-LVM, it maximizes the variability between classes and minimizes the difference for samples in the same class. 
-In contrast to our approach the overall covariance matrix may define a more meaningful measure but also it is more difficult to update when performing online learning and when learning a new class.
+where the covariance matrix is determined such that, just like in the case of Discriminant GP-LVM, it maximizes the variability between classes and minimizes the difference for samples in the same class. 
+In contrast to our approach the overall covariance matrix may define a more meaningful measure but it is also more difficult to update when performing online learning and when learning a new class (novelty detection).
+
+*** Implementation
+We wrote a simple version of the Dynamic Time Warping in Python using dynamic programming and following the definition in [[Dynamic Time Warping]]. As the variance for some feature dimensions can be zero the constructed covariance matrix does not have full rank and thus cannot be inverted. We mitigate this problem with an approximation of the inverse by computing the pseudoinverse.
 
 ** Discriminative Sequence Back-Constrained GP-LVM
 In the paper "Discriminative Sequence Back-Constrained GP-LVM for MOCAP Based
@@ -643,6 +671,7 @@ new sequence and using a SVM in the latent space.
 
 *** Advantages
 Recognition can be done in real time by using the learned back constrained. The centroid in the latent space is being calculated for the whole sequence and classified by the SVM. 
+Also incomplete trajectories can be classified.
 
 *** Shortcomings
 As the optimization for GP-LVM is determined by the above similarity measure and the discriminative criterion online optimization is very difficult. It is thus highly likely that performing a gradient online optimization will be stuck in an local minimum.
@@ -715,6 +744,9 @@ digraph pipeline {
 [[file:figures/gplmf-approach.png]]
 
 *** Learning the flow field
+
+The initial idea was to learn a general dimensionality reduction for a high number of varying activities and work with only one latent space. The problem is that the it is very difficult to learn a smooth mapping in the latent space. This is described more deeply in ebib:urtasun_modeling_2007-1 where the authors try to incorporate the optimization criterion of Locally Linear Embedding together with the a back-constrained Gaussian Process Dynamical Model. As this approach needs also prior knowledge and is very complex we decided to learn each activity separately. Future work should deal with the possibilities of learning a unified latent space at it will allow us to learn different flow fields in the same space and we will not have to perform a heuristic normalization.
+ 
 We deploy GP for learning the flow field which gives us several advantages.
 
 \missingfigure{latent space (several samples of one activity) with flow field}
@@ -795,11 +827,11 @@ Dataset: [[http://mocap.cs.cmu.edu][CMU Motion capture dataset]]
 - GPy
 - mlpy
 
+** Mahalanobis DTW
+
 ** Discriminative Sequence back-constrained GP-LVM
 As the idea was to implement the algorithm in an language that can be easily integrated into the ROS infrastructure we implemented the model in Python.
 Unfortunately we were not able to perform an appropriate dimensionality reduction. We believe that the many constraints on the optimization and the highly different data is very hard to optimize. For this reason we choose to implement a new model basing on motion flow fields.
-
-** Mahalanobis DTW
 ** Gaussian Process - Latent Motion Field
 
 

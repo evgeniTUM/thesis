@@ -45,7 +45,7 @@ def calc_y(X):
     dimensions = X.shape[1]
     result = []
     for d in range(dimensions):
-        df_dx = [ [X[i+1,d] - X[i-1,d]] for i in range(1,X.shape[0]-1) ]
+        df_dx = [ [X[i,d] - X[i-1,d]] for i in range(1,X.shape[0]-1) ]
         result.append(df_dx)
 
     return X[1:-1], np.array(result)
@@ -69,9 +69,17 @@ def learn_flows(X, Y, l_scale=0.3, variance=0.0000001 ):
         
 
 
-def energy(X, flow):
-    return 0
+def energy(Y, flow, m):
+    energy = 0
 
+    X = m.mapping.f(Y)
+    dimensions = X.shape[1]
+    
+    for i in range(X.shape[0]-1):
+        prediction = [ flow[d].predict(X[i])[0][0][0] for d in range(dimensions)]
+        energy += np.linalg.norm(prediction - (X[i+1]-X[i]))
+
+    return energy / Y.shape[0]
 
 
 def plot_flow_field(f, model, index=0):
@@ -80,7 +88,7 @@ def plot_flow_field(f, model, index=0):
 
     limit = max(abs(np.min(model.X)), np.max(model.X))
     dimensions = len(f)
-    samples = 1000**(1.0/dimensions)
+    samples = 2000**(1.0/dimensions)
 
     
     x = []
@@ -117,11 +125,21 @@ def plot_flow_field(f, model, index=0):
     plt.show()
     
 
+def get_test_data():
+    class_index = [0]
+    seq_index = [0]
+
+    data = np.array([[0,0], [1,1], [2,2]])
+
+    class_index.append(data.shape[0])
+    seq_index.append(data.shape[0])
+    return data, seq_index, class_index
 
 
-def test(m):
+
+def test(m, l_scale=0.3, variance=0.00000001):
     x, y = calc_y(m.X)
-    f = learn_flows(x, y)
+    f = learn_flows(x, y, l_scale=l_scale, variance=variance)
 
     plot_flow_field(f, m)
 
@@ -139,20 +157,20 @@ def get_mocap_data():
     index = 0
 
     count = 0
-
-    # # walk sequences
-    # for i in range(count,count+1):
-    #     data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
-    #     data[i]['Y'][:, 0:3] = 0.0
-    #     index += data[i]['Y'].shape[0]
-    #     seq_index.append(index)
-    #     count += 1
-    # class_index.append(index)
+ 
+    # walk sequences
+    for i in range(count,count+1):
+         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
+         data[i]['Y'][:, 0:3] = 0.0
+         index += data[i]['Y'].shape[0]
+         seq_index.append(index)
+         count += 1
+    class_index.append(index)
 
 
         
 # # jump sequences
-#     for i in range(count,count+2):
+#     for i in range(count,count+1):
 #         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-count)]))
 #         data[i]['Y'][:, 0:3] = 0.0
 #         index += data[i]['Y'].shape[0]
@@ -161,13 +179,13 @@ def get_mocap_data():
 #     class_index.append(index)
 
 # boxing
-    for i in range(count,count+2):
-        data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-count)]))
-        data[i]['Y'][:, 0:3] = 0.0
-        index += data[i]['Y'].shape[0]
-        seq_index.append(index)
-        count += 1
-    class_index.append(index)
+#    for i in range(count,count+1):
+#        data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-count)]))
+#        data[i]['Y'][:, 0:3] = 0.0
+#        index += data[i]['Y'].shape[0]
+#        seq_index.append(index)
+#        count += 1
+#    class_index.append(index)
 
 
     _data_ = data
@@ -196,6 +214,7 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0, dimensions=2, X=None):
 
     data, seq_index, class_index = get_mocap_data()
     # data, seq_index, class_index = get_human_activity_data()
+    # data, seq_index, class_index = get_test_data()
 
     back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)
     mapping = GPy.mappings.Kernel(X=data, output_dim=dimensions, kernel=back_kernel)
@@ -206,6 +225,9 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0, dimensions=2, X=None):
     return m
 
 
+def show_path(m):
+    x, y = calc_y(m.X)
+    quiver(m.X[:,0], m.X[:,1], y[0], y[1])
 
 
 def seq_index2labels(seq_index):

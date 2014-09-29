@@ -2,13 +2,18 @@
 import numpy as np
 
 
+def euclidean_dist(x,y):
+    temp = x-y
+    return np.sqrt(np.dot(temp.T, temp))
+
 def dtw(s, t, dist=None):
     n = len(s)
     m = len(t)
 
     # use eculidean distance if no function specified
     if dist is None:
-        dist = lambda x, y: np.linalg.norm(x-y)
+#        dist = lambda x, y: np.linalg.norm(x-y)
+        dist = euclidean_dist # linalg.norm too slow :(
 
     DTW = np.ndarray((n+1, m+1))
 
