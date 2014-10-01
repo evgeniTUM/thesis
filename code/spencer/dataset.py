@@ -127,6 +127,30 @@ class DatasetPerson:
 
     return data
 
+
+  def convert_to_features(self, data):
+    
+    features = []
+    for t in range(1, data.shape[0]):
+      feature = []
+      for i in range(0,15):
+        feature.append(joint3d(data[t], i) - joint3d(data[t-1], i))
+
+        
+      for i in range(0,15):
+        for j in range(i+1,15):
+          feature.append(joint3d(data[t], i) - joint3d(data[t], j))
+
+      features.append(np.array(feature).flatten())
+
+    return np.array(features)
+
+
+  def get_features(self):
+    return self.convert_to_features(self.get_processed_data())
+
+
+
   def get_pose(self, frame):
     return Pose(self.data[frame])
 
@@ -172,3 +196,7 @@ class DatasetPerson:
     pylab.show()
       
 
+
+
+def joint3d(row, i):
+  return row[i*3:i*3+3]
