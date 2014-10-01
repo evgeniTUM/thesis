@@ -45,16 +45,17 @@ def calc_y(X):
     dimensions = X.shape[1]
     result = []
     for d in range(dimensions):
-        df_dx = [ [X[i,d] - X[i-1,d]] for i in range(1,X.shape[0]-1) ]
+        df_dx = [ [X[i+1,d] - X[i,d]] for i in range(1,X.shape[0]-1) ]
         result.append(df_dx)
 
     return X[1:-1], np.array(result)
 
 
-def learn_flow(X, y, l_scale=0.1, variance=1.0):
+def learn_flow(X, y, lengthscales, variance=1.0):
 
     dimensions = X.shape[1]
-    lengthscales = [ l_scale for d in range(dimensions)]
+
+#    lengthscales = [ l_scale for d in range(dimensions)]
     kernel = GPy.kern.rbf(dimensions, ARD=True, 
                           lengthscale=lengthscales, variance=variance)
     m = GPRegression(X,y,kernel)
@@ -63,8 +64,10 @@ def learn_flow(X, y, l_scale=0.1, variance=1.0):
     
     return m
 
-def learn_flows(X, Y, l_scale=0.3, variance=0.0000001 ):
-    return [ learn_flow(X, Y[d], l_scale, variance)
+def learn_flows(X, Y, l_scale=1.0, variance=1.0 ):
+    lengthscales = [np.cov(Y[d].T)*l_scale for d in range(X.shape[1]) ]
+
+    return [ learn_flow(X, Y[d], lengthscales, variance)
              for d in range(Y.shape[0])]
         
 
@@ -77,7 +80,10 @@ def energy(Y, flow, m):
     
     for i in range(X.shape[0]-1):
         prediction = [ flow[d].predict(X[i])[0][0][0] for d in range(dimensions)]
-        energy += np.linalg.norm(prediction - (X[i+1]-X[i]))
+        print i, prediction
+        print X[i], X[i+1]
+        temp =  (prediction - (X[i+1]-X[i]))
+        energy += np.dot(temp.T, temp)
 
     return energy / Y.shape[0]
 
@@ -86,14 +92,17 @@ def plot_flow_field(f, model, index=0):
     import matplotlib 
     import matplotlib.pyplot as plt
 
-    limit = max(abs(np.min(model.X)), np.max(model.X))
     dimensions = len(f)
     samples = 2000**(1.0/dimensions)
+
+    limit = []
+    for d in range(dimensions):
+        limit.append( max(abs(np.min(model.X[:, d])), np.max(model.X[:, d])))
 
     
     x = []
     for d in range(dimensions):
-        x.append(np.linspace(-limit, limit, samples))
+        x.append(np.linspace(-limit[d], limit[d], samples))
 
     x = list(np.meshgrid(*x))
     X = np.array(zip(*[np.array(el).flatten() for el in x]))
@@ -108,7 +117,7 @@ def plot_flow_field(f, model, index=0):
 
     if dimensions == 2:
         plot(model);
-        quiver(x[0], x[1], vx[0], vx[1])
+        quiver(x[0], x[1], vx[0], vx[1], color='y')
     else:
         if dimensions == 3:
             from mpl_toolkits.mplot3d import axes3d
@@ -120,7 +129,7 @@ def plot_flow_field(f, model, index=0):
                         x[1].reshape(vx[0].shape[0],1),
                         x[2].reshape(vx[0].shape[0],1), 
                         vx[0], vx[1], vx[2],
-                        length=0.1)
+                        length=0.1, color='y')
 
     plt.show()
     
@@ -199,7 +208,7 @@ def get_human_activity_data():
     data_set = DatasetPerson()
     data = data_set.get_processed_data()
 
-    data = data[::(data.shape[0]/200)]
+    data = data[::20]
 
     class_index = [0]
     seq_index = [0]
@@ -210,8 +219,7 @@ def get_human_activity_data():
 
 
 
-def createModel(sigma=0.5, init='PCA', lengthscale=1.0, dimensions=2, X=None):
-
+def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2, X=None):
     data, seq_index, class_index = get_mocap_data()
     # data, seq_index, class_index = get_human_activity_data()
     # data, seq_index, class_index = get_test_data()
@@ -225,9 +233,11 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0, dimensions=2, X=None):
     return m
 
 
-def show_path(m):
-    x, y = calc_y(m.X)
-    quiver(m.X[:,0], m.X[:,1], y[0], y[1])
+def show_path(m, X=None):
+    if X is None:
+        X = m.X
+    x, y = calc_y(X)
+    quiver(X[:,0], X[:,1], y[0], y[1])
 
 
 def seq_index2labels(seq_index):

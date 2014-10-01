@@ -6,7 +6,7 @@ from utils import dtw
 from dataset import DatasetPerson
 
 
-
+sparsity = 4
 
 def get_mocap_data(subject=35 , motion=01):
     data = []
@@ -66,10 +66,6 @@ def get_mocap_data(subject=35 , motion=01):
 
 def test_adl():
 
-    limit = 500
-
-    result = []
-    
     person = []
     for i in range(3):
         person.append(DatasetPerson(person=i+1))
@@ -79,6 +75,8 @@ def test_adl():
     class_counter = 0
     for personId in range(3):
         for activity, label in person[personId].activity_label.iteritems():
+            if label == 'random':
+                continue
             if classes.get(label) is None:
                 class_counter += 1
                 classes[label] = {'number' : class_counter, 'samples':[]}
@@ -94,33 +92,71 @@ def test_adl():
 
     testPerson = DatasetPerson(person=4)
 
+    ground_truth = []
+    prediction_mah = []
+    prediction = []
+    prediction_min = []
+    prediction_mah_min = []
+
     for testActivity, testLabel in testPerson.activity_label.iteritems():
+        if testLabel == 'random':
+            continue
+
         testPerson.load_activity(testActivity)
         testSample = testPerson.get_processed_data()
+        
+        ground_truth.append(classes[testLabel]['number'])
 
+        score_mah = []
+        score = []
+        score_min = []
+        score_mah_min = []
+        
         for label, cl in classes.iteritems():
+            
+            sample_prediction = []
+            sample_prediction_mah = []
+
             for sample in cl['samples']:
                 normalizer = min(len(sample), len(testSample))
+
                 mahalanobis_distance = lambda x,y: scipy.spatial.distance.mahalanobis(x,y,cl['inverse_covariance'])
 
-                mahalanobis_distance2 = lambda x,y: scipy.spatial.distance.mahalanobis(x,y,cl['covariance'])
+
+                dtw_dist = dtw(testPerson.get_processed_data()[::sparsity], sample[::sparsity])/normalizer
+                dtw_mah_dist = dtw(testPerson.get_processed_data()[::sparsity], sample[::sparsity], dist=mahalanobis_distance)/normalizer
 
 
-                print testLabel + " --- " + label
-                dtw_dist = dtw(testPerson.get_processed_data()[::10], sample[::10])/normalizer
-                dtw_mah_dist = dtw(testPerson.get_processed_data()[::10], sample[::10], dist=mahalanobis_distance)/normalizer
-                dtw_mah_dist2 = dtw(testPerson.get_processed_data()[::10], sample[::10], dist=mahalanobis_distance2)/normalizer
 
+                print testLabel, '---', label
+                print dtw_dist, dtw_mah_dist
+
+                sample_prediction_mah.append(dtw_mah_dist)
+                sample_prediction.append(dtw_dist)
                 
+            score_mah.append(sum(sample_prediction_mah)/len(cl['samples']))
+            score.append(sum(sample_prediction)/len(cl['samples']))
+            score_mah_min.append(min(sample_prediction_mah))
+            score_min.append(min(sample_prediction))
+            
 
-                print dtw_dist
-                print dtw_mah_dist
-                print dtw_mah_dist2
+        prediction_mah.append(np.argmin(score_mah))
+        prediction.append(np.argmin(score))
+        prediction_mah_min.append(np.argmin(score_mah_min))
+        prediction_min.append(np.argmin(score_min))
 
-                result.append({'trueLabel' : testLabel, 'label': label,
-                               'dtw': dtw_dist, 'dtw_mah': dtw_mah_dist,
-                               'dtw_mah2': dtw_mah_dist2})
 
-    return result
+
+    m = []
+    for label, cl in classes.iteritems():
+        m.append(cl['number'])
+
+    prediction_mah = map(lambda x: m[x], prediction_mah)
+    prediction = map(lambda x: m[x], prediction)
+    prediction_mah_min = map(lambda x: m[x], prediction_mah_min)
+    prediction_min = map(lambda x: m[x], prediction_min)
+
+
+    return ground_truth, prediction_mah, prediction, prediction_mah_min, prediction_min
  
 
