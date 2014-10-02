@@ -146,8 +146,11 @@ class DatasetPerson:
     return np.array(features)
 
 
+ 
   def get_features(self):
-    return self.convert_to_features(self.get_processed_data())
+#    return self.convert_to_features(self.get_processed_data())
+    return self.convert_to_features(self.data[:, data_set_indices])
+
 
 
 
