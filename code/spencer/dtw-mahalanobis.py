@@ -6,7 +6,7 @@ from utils import dtw
 from dataset import DatasetPerson
 
 
-sparsity = 1
+sparsity = 10
 
 def get_mocap_data(subject=35 , motion=01):
     data = []

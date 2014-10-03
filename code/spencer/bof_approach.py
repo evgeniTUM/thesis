@@ -10,7 +10,7 @@ import sklearn.svm
 from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
 import sklearn.metrics
-
+from sklearn.gaussian_process import GaussianProcess
 
 
 classes = None
@@ -37,7 +37,8 @@ def learn(persons=[1,2,3], clusters=128):
     kmeans = create_code_book(data, size=clusters)
 
 
-    lin_svm = sklearn.svm.LinearSVC()
+    classificator = sklearn.svm.LinearSVC()
+    #classificator = GaussianProcess(theta0=5e-1)
     
     # get nearest centroids
     codes = []
@@ -47,16 +48,16 @@ def learn(persons=[1,2,3], clusters=128):
     # histogram pooling
     histograms = []
     for code in codes:
-        print code
         histogram = compute_histogram(code, clusters)
         histograms.append(histogram)
-        
-    lin_svm.fit(histograms, labels)
+     
     
-    return lin_svm, kmeans
+    classificator.fit(histograms, labels)
+    
+    return classificator, kmeans
 
-def predict(lin_svm, kmeans, sample):
-    return lin_svm.predict(compute_histogram(kmeans.predict(sample), kmeans.n_clusters))
+def predict(classificator, kmeans, sample):
+    return classificator.predict(compute_histogram(kmeans.predict(sample), kmeans.n_clusters))
 
         
 def compute_histogram(code, clusters):
@@ -106,13 +107,13 @@ def test(person=4, test_partial=False):
     persons=[1,2,3,4]
     persons.remove(person)
 
-    lin_svm, kmeans = learn(persons) 
+    classificator, kmeans = learn(persons) 
 
-    test_person(lin_svm, kmeans, person, test_partial)
+    test_person(classificator, kmeans, person, test_partial)
 
 
 
-def test_person(lin_svm, kmeans, person=4, test_partial=False):
+def test_person(classificator, kmeans, person=4, test_partial=False):
     global classes
     
     testPerson = DatasetPerson(person=person)
@@ -135,7 +136,7 @@ def test_person(lin_svm, kmeans, person=4, test_partial=False):
             testSample = testSample[start_frame:start_frame+frames]
 
 
-        prediction.append(predict(lin_svm, kmeans, testSample)[0])
+        prediction.append(predict(classificator, kmeans, testSample)[0])
         
         
 

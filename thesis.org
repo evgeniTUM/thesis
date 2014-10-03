@@ -95,7 +95,6 @@
 #+begin_latex
 
 \newcommand{\TODO}[1]{\todo[color=red]{#1}}
-\listoftodos 
 \pagenumbering{arabic} 
 
 
@@ -108,12 +107,6 @@
 \TODO{cite:datasets (mocap, daily activities, ms activities)}
 \TODO{Check bibliography style and data!!!}
 \TODO{define simple variables mathematically eg. feature sequence etc.}
-
-
-
-
-
-
 
 * Introduction
 ** Motivation
@@ -133,6 +126,8 @@ Advantages of skeletal features are that no person sensitive information has to 
 
 The biggest challenge in activity recognition is classification of time series data. In contrast to the simpler sample model, here we have to classify sequences. Therefore appropriate models have to be implemented that take the dynamics into account.
 
+On top of that the problem is ill-posed. 
+
 Also for online activity recognition we have to classify incomplete data consisting of subsequences. This makes the problem more challenging and reduces the pool of methods that can be used for the classification.
 
 We identify three requirements for a practical activity recognition system:
@@ -143,7 +138,7 @@ We identify three requirements for a practical activity recognition system:
 3. Novelty detection\\
    The algorithm should be able to recognize unobserved activities. 
 
-Optimally it should be possible to also recognize when an unknown activity started and finished. This way automatic segmentation will be possible and will considerably reduce the supervised learning time. \cite{elaborate on this} In combination with active learning this will greatly reduce training time for practical applications.
+Optimally it should be possible to also recognize when an unknown activity started and finished. This way automatic segmentation will be possible and will considerably reduce the supervised learning time. \todo{elaborate on this} In combination with active learning this will greatly reduce training time for practical applications.
 
 Nice to have... online learning??
 
@@ -449,7 +444,7 @@ Skeleton features are sufficient but other features can be useful:
   ...
   
 *** Observations
-- One observation one can make is that activities are represented by the dynamics of the poses, and thus we try to capture this dynamic model. Several options exist. One way is to use popular graph based probability models, such as Hidden Markov Models, Conditional Random Fields or Actiong Graphs \cite{cite action graph}. Another option is to try to capture the dynamics by appropriate feature extraction. 
+- One observation one can make is that activities are represented by the dynamics of the poses, and thus we try to capture this dynamic model. Several options exist. One way is to use popular graph based probability models, such as Hidden Markov Models, Conditional Random Fields or Actiong Graphs \todo{cite action graph}. Another option is to try to capture the dynamics by appropriate feature extraction. 
   
 - Difference between activity and action
   Activities are composed of actions
@@ -621,7 +616,7 @@ As the optimization for GP-LVM is determined by the above similarity measure and
 
 Also one problem with the real-time recognition is that determining when a activity has ended/begun is very difficult. Also as we do not know how long a sequence is we have to calculate the centroid for several time frames.
 *** Implementation
-As there was no publicly available source code we choose to re-implement this method. As it was planned to implement a /ROS (Robot Operating System)/ module for online activity recognition we choose the Python platform which can be easily integrate with /ROS/. We used the /GPy/ library from the ... Sheffield University \cite{cite GPy}. We ported the Discriminative GP-LVM constraints code from Prof. Urtasun and integrated it with /GPy/. To implement the sequence back-constraints we performed a constrained optimization using Lagrangians.
+As there was no publicly available source code we choose to re-implement this method. As it was planned to implement a /ROS (Robot Operating System)/ module for online activity recognition we choose the Python platform which can be easily integrate with /ROS/. We used the /GPy/ library from the ... Sheffield University \todo{cite GPy}. We ported the Discriminative GP-LVM constraints code from Prof. Urtasun and integrated it with /GPy/. To implement the sequence back-constraints we performed a constrained optimization using Lagrangians.
 
 *** Extensions:
 **** Learn poselets (pose and velocities) to capture dynamics
@@ -751,6 +746,7 @@ $$ E_{t_1,t_n} = \sum_{i \in \mathcal{T}, j \in \mathcal{T}} E_{i,j} + regulariz
 where the regularizer ensures that we do not change flow fields often...
 
 ** Bag-of-features
+
 * Evaluation
 ** Datasets
 *** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
