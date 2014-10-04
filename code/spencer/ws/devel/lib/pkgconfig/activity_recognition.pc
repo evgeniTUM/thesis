@@ -1,0 +1,8 @@
+prefix=/home/evgeni/thesis/code/spencer/ws/devel
+
+Name: activity_recognition
+Description: Description of activity_recognition
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/evgeni/thesis/code/spencer/ws/devel/lib 
+Requires: 

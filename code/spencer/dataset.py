@@ -1,6 +1,8 @@
 import glob
 import os
 import numpy as np
+import scipy.ndimage.filters
+
 
 
 data_set_indices = []
@@ -33,24 +35,45 @@ for joint in range(0,4):
 # 14 -> LEFT_FOOT
 # 15 -> RIGHT_FOOT
 
-labels = []
-labels.append('H')
-labels.append('N')
-labels.append('T')
-labels.append('LS')
-labels.append('LE')
-labels.append('RS')
-labels.append('RE')
-labels.append('LHi')
-labels.append('LK')
-labels.append('RHi')
-labels.append('RK')
-labels.append('LHa')
-labels.append('RHa')
-labels.append('LF')
-labels.append('RF')
+joint_labels = []
+joint_labels.append('H')
+joint_labels.append('N')
+joint_labels.append('T')
+joint_labels.append('LS')
+joint_labels.append('LE')
+joint_labels.append('RS')
+joint_labels.append('RE')
+joint_labels.append('LHi')
+joint_labels.append('LK')
+joint_labels.append('RHi')
+joint_labels.append('RK')
+joint_labels.append('LHa')
+joint_labels.append('RHa')
+joint_labels.append('LF')
+joint_labels.append('RF')
 
 
+class_labels = {
+'still': 0,
+'talking on the phone': 1,
+'writing on whiteboard': 2,
+'drinking water': 3,
+'rinsing mouth with water': 4,
+'brushing teeth': 5,
+'wearing contact lenses': 6,
+'talking on couch': 7,
+'relaxing on couch': 8,
+'cooking (chopping)': 9,
+'cooking (stirring)': 10,
+'opening pill container': 11,
+'working on computer': 12,
+'random': 13}
+
+
+def label_to_class(l):
+  for activity, label in class_labels.iteritems():
+    if label == l:
+        return activity
 
 
 default_data_dir=os.getenv("HOME")+'/data/human_activities'
@@ -119,37 +142,23 @@ class DatasetPerson:
       # translate, rotate point and normalize point cloud
       for joint in range(0,15):
         point3d = row[joint*3:joint*3+3]
-        point3d = point3d - torso_position
         point3d = np.dot(R, point3d.T)
+        point3d = point3d - torso_position
 
-        row[joint*3:joint*3+3] = point3d/normalizer
+        row[joint*3:joint*3+3] = point3d #/normalizer
 
 
     return data
 
 
-  def convert_to_features(self, data):
-    
-    features = []
-    for t in range(1, data.shape[0]):
-      feature = []
-      for i in range(0,15):
-        feature.append(joint3d(data[t], i) - joint3d(data[t-1], i))
-
-        
-      for i in range(0,15):
-        for j in range(i+1,15):
-          feature.append(joint3d(data[t], i) - joint3d(data[t], j))
-
-      features.append(np.array(feature).flatten())
-
-    return np.array(features)
-
-
  
-  def get_features(self):
-#    return self.convert_to_features(self.get_processed_data())
-    return self.convert_to_features(self.data[:, data_set_indices])
+  def get_features(self, sigma=None):
+    data = self.data[:, data_set_indices]
+
+    if sigma is not None:
+      for i in range(data.shape[1]):
+        data[:, i] = scipy.ndimage.gaussian_filter1d(data[:, i], sigma)
+    return convert_to_features(data)
 
 
 
@@ -178,7 +187,7 @@ class DatasetPerson:
       return
 
     label = {}
-    for text, x, y, z in zip(labels, pose[:,0], pose[:,1], pose[:,2]):
+    for text, x, y, z in zip(joint_labels, pose[:,0], pose[:,1], pose[:,2]):
       x2, y2, _ = proj3d.proj_transform(x,y,z, ax.get_proj())
 
       label[text] = pylab.annotate(
@@ -187,7 +196,7 @@ class DatasetPerson:
         textcoords = 'offset points', ha = 'right', va = 'bottom')
 
       def update_position(e):
-        for text, x, y, z in zip(labels, pose[:,0], pose[:,1], pose[:,2]):
+        for text, x, y, z in zip(joint_labels, pose[:,0], pose[:,1], pose[:,2]):
           x2, y2, _ = proj3d.proj_transform(x,y,z, ax.get_proj())
           label[text].xy = x2,y2
           label[text].update_positions(fig.canvas.renderer)
@@ -203,3 +212,48 @@ class DatasetPerson:
 
 def joint3d(row, i):
   return row[i*3:i*3+3]
+
+
+def convert_to_features(data):
+  
+  features = []
+  for t in range(1, data.shape[0]):
+    feature = []
+    for i in range(0,15):
+      feature.append(joint3d(data[t], i) - joint3d(data[t-1], i))
+     
+    for i in range(0,15):
+      for j in range(i+1,15):
+      #for j in [2, 7, 9]:
+        feature.append(joint3d(data[t], i) - joint3d(data[t], j))
+
+    features.append(np.array(feature).flatten())
+
+  return np.array(features)
+
+
+def read_persons(persons = [1,2,3], sigma=None):
+    global classes
+
+    print "Reading persons", persons
+
+    person = []
+    for i in persons:
+        person.append(DatasetPerson(person=i))
+
+    samples = []
+    labels = []
+
+    for personId in range(len(person)):
+        for activity, label in person[personId].activity_label.iteritems():
+            if label == 'random':
+                continue
+
+            person[personId].load_activity(activity)
+            sample_features = person[personId].get_features(sigma=sigma)
+
+            
+            samples.append(sample_features)
+            labels.append(class_labels[label])
+
+    return samples, labels

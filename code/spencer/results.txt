@@ -1,0 +1,39 @@
+BOF + LCS
+
+4: 91, 94
+3: 65, 75
+2: 91, 94
+1: 81, 81
+
+= 82, 86
+
+problem of not containing same poses
+
+BOF + DTW
+(every 10th frame)
+
+4: 84, 88
+3: 60, 69
+2: 91, 94
+1: 83, 88
+
+= 79, 84
+
+
+std:
+
+4: 91, 94
+3: 57, 69
+2: 100, 100
+1: 91, 94
+
+= 84 89
+
+ext + LCS
+
+4: 
+3: 65, 75
+2:
+1:
+
+extended is good by 10 cluster per class
