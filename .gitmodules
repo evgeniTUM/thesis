@@ -1,0 +1,3 @@
+[submodule "code/spencer/ws/src/openni_tracker"]
+	path = code/spencer/ws/src/openni_tracker
+	url = https://github.com/ros-drivers/openni_tracker.git

@@ -45,7 +45,13 @@ def recognize ():
         if len(data) == 0:
             print "No poses"
         else:
-            print data[0]
+            # import matplotlib.pyplot as plt
+            # from mpl_toolkits.mplot3d import Axes3D
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection='3d')
+            # d = np.array(data[0]).reshape((15,3))
+            # ax.scatter(d[:,0], d[:,1], d[:,2])
+
             features = convert_to_features(np.vstack(data))
             print label_to_class(predict(svm, kmeans, features))
             print features.shape
@@ -74,35 +80,20 @@ joints = ['head','neck','torso','left_shoulder','left_elbow',
           'left_foot','right_foot']
 
 
-if True: # __name__ == '__main__':
+from std_msgs.msg import Int32MultiArray
+
+def callback(pose):
     # work only with one person for now
     person_id = 1
+    
+    poses.append(pose.data)
+        
+    
+if True: # __name__ == '__main__':
 
     rospy.init_node('activity_recognition')
-    listener = tf.TransformListener()
-
-    rate = rospy.Rate(float(frames_per_second))
-    recognize()
-
+    rospy.Subscriber("/openni_tracker/pose", Int32MultiArray, callback)
     print "recognition started"
-    while not rospy.is_shutdown():
-        try:
-            pose = []
-            
-            for joint in joints:
-                (trans,rot) = listener.lookupTransform(
-                    joint+'_'+str(person_id), 
-                    '/openni_depth_frame', rospy.Time(0))
-                pose.append(trans[0]*1000)
-                pose.append(trans[1]*1000)
-                pose.append(trans[2]*1000)
-
-            with lock:
-                poses.append(np.hstack(pose))
-                    
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            continue
-
-        
-
-        rate.sleep()
+    recognize()
+    
+    rospy.spin()

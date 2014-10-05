@@ -18,6 +18,7 @@
 
 # --- Packages
 #
+#+LaTeX_HEADER: \usepackage[top=45mm, bottom=50mm]{geometry}
 #+LaTeX_HEADER: \usepackage{pdfsync}
 #+LaTeX_HEADER: \usepackage{scrpage2}
 
@@ -65,6 +66,9 @@
 #+LaTeX_HEADER: }
 
 
+#+begin_latex
+#+end_latex
+
 
 #+begin_latex
 \include{components/info}
@@ -92,6 +96,9 @@
 #+STYLE: &lt;link rel="stylesheet" type="text/css" href="css/org.c
 
 
+
+* Introduction
+
 #+begin_latex
 
 \newcommand{\TODO}[1]{\todo[color=red]{#1}}
@@ -108,7 +115,7 @@
 \TODO{Check bibliography style and data!!!}
 \TODO{define simple variables mathematically eg. feature sequence etc.}
 
-* Introduction
+
 ** Motivation
 Activity recognition is a big research field in machine learning and robotics. Being able to infer what human actors are doing helps in many practical robotic tasks. An example is doing short-time prediction for collision-avoidance. Moreover in social robotics it is crucial to know what humans are doing when reasoning about the current state of the robot's environment.
 
@@ -268,6 +275,81 @@ Conditional of a multivariate gaussian:
 
 
 \todo{cite Gaussian Winter School slides Philipp Hennig}
+
+** Gaussian Processes
+Consider the multivariate gaussian distribution above. If we want to model the distribution of discrete function defined over a finite interval,
+we can treat each element of the vector $\bm{x}$ as an point of the function. Thus we can we can view the multivariate gaussian distribution as a probability function over the function space. Letting the dimensionality $d$ go to infinity (the distance between each point goes to zero) we can model continuous functions. ... ueberleitung GPs ...
+
+In this case the mean is a point in the function space, thus a function $E[\bm{x}] = f(x)$. And because of the fact that we now have infinite dimensions the covariance can be seen as an "/infinite/ matrix/", thus a function of two elements: $Cov(x,y)$.
+
+
+The marginaliation property is what make Gaussian Processes feasible as it lets us compute ... with a finite part of the covariance function.
+
+Thus it can be seen as a gaussian distribution over the function space. ebib:rasmussen_gaussian_2006
+
+A gaussian process can be also seen as the bayesean posterior consisting of the product of the (gaussian) functional prior and the observed samples.??? Another view is a kernelized regression with infinite parameters. ebib:rasmussen_gaussian_2006
+
+A gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting which is an important property as it not needed to perform cross validation.
+
+*** Kernels
+The most used kernel when using Gaussian Process is the /Radial Basis Function (RBF)/.
+
+**** Effects of the hyper-parameters
+\missingfigure{hyperparameter effects on regression}
+*** Regression
+\missingfigure{nice GP regression example}
+
+*** Learning
+In the case of a GP the learning phase is different than in parametric models, where the model parameters are inferred from the data.
+GPs hyperparameter learning by variational optimization (data fit term + cov. regularizer)
+
+In contrast to parametric models gaussian processes are less prune to overfitting because of the covariance regularizer term.
+
+
+$$ E(\theta) = \frac{1}{2}\log({K}) - \frac{y^T K^{-1} y}{2} $$
+
+We see that we have to invert the covariance matrix, which is of dimensions $n \times n$. Therefore this operation has a runtime complexity of $\mathcal{O}(n) = n^3$ which is also the bottleneck of the whole algorithm and the most serious drawback of Gaussian Processes.
+
+*** Classification
+Classifying with GPs is a little more involved, because of the
+discriminative function and the fact that the likelihood \todo{explain
+problems of GP classification right} is not a Gaussian. For this
+reason different models exist which try to approximate this
+likelihood.
+
+*** Advantages
+**** non parametric
+When using a parametric model one has to make sure that the chosen model is sufficiently complex to fit the data but at the same time is not too complex that it will overfitt the training data. This is a very hard task and is in most cases done through cross-validation of the model with an independent validation set. As discussed above GPs are less prune to overfitting and therefore we do not need to reduce the training data to create a validation set.
+
+**** probabilistic
+Being a model which has a Bayesian interpretation GP
+The hyperparameters can be interpreted. The lenghtscale controls how much neighboring points contribute to the covariance of the function.
+
+**** generative
+
+
+**** nice for Bayesian
+**** linear algebra operations (marginals and conditionals)
+*** Disadvantages
+
+**** susceptible to outliers
+One big problem of the gaussian distribution is that it has the assumption that the noise is gaussian. When this assumption does not hold and we have several an outlier it either shift the mean un-proportionally to itself or raise the variance. Both cases are
+The student-t distribution, for exmaple, is robust against outliers but is much harder to deal with.
+**** Unimodal
+Since the gaussian distribution is concave it can model only one hypothesis. This a curse but also a blessing since the math behind it is simple and unambiguous.
+
+**** high computational complexity
+$\mathcal{O}(n^3)$
+
+There are sparse GP methods which approximate the model. An example are the informative vector machines (IVM) which reduce the complexity to $\mathcal{O}(d^2 n)$ where d is a subset of the samples selected by maximum entropy. ebib:lawrence_fast_2003
+
+**** non-convex optimization of the hyper-parameters
+
+
+*** Algorithms
+**** Sparse GPs (IVM)
+***** IVM for multiple classes ebib:seeger_sparse_2004
+
 
 ** Gaussian Process - Latent Variable Model
 
