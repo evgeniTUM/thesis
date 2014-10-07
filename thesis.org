@@ -128,6 +128,16 @@ For real robotic tasks it is very important that the activity recognition is onl
 
 Advantages of skeletal features are that no person sensitive information has to be processed by the learning algorithm. In the context of the SPENCER project this is an important prerequisite. Another advantage is also that the skeletal features are very informative for activity recognition. Also beginning to concept an algorithm that builds on top of robust pose estimation reduces the complexity, as we can fully ignore the pose estimation problem.
 
+\missingfigure{xtion}
+
+*** The SPENCER project
+\missingfigure{spencer robot}
+With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
+
+\missingfigure{skeleton representation}
+
+
+
 ** Problem statement
 
 \todo{make a distinction between action and activity}
@@ -151,20 +161,12 @@ Optimally it should be possible to also recognize when an unknown activity start
 
 Nice to have... online learning??
 
-*** Online (active) learning of human activities
+*** Online learning of human activities
 Use Gaussian processes to learn new activities in real time
 *** Evaluate Gaussian processes against different ml algorithms for activity recognition
 Evaluate the performance of GPs in relation to the other solutions
 
 *** Scope
-*** The SPENCER project
-\missingfigure{spencer prototype robot (Bender B21)}
-
-\missingfigure{spencer robot}
-With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
-
-\missingfigure{skeleton representation}
-
 ** Prerequisites and notation
 We assume a basic understanding in /Linear Algebra/ and /Probability theory/ . Although a high-level overview on machine learning is given in chapter 2 deeper knowledge in this field will help understand the /Related Works/ chapter better.
 
@@ -184,21 +186,22 @@ We assume a basic understanding in /Linear Algebra/ and /Probability theory/ . A
 - Results and Outlook :: The last chapter summarizes the results of the two approaches and gives a brief outlook of future improvements.
 
 * Background
-This chapter introduces some basic concepts needed to understand the proposed approaches. First an high-level overview is given on machine learning and its terminology. After that the Gaussian distribution is presented in its univariate and multivariate variants. Following is an explanation of /Gaussian Processes/, their different interpretations and properties. After that the  /Gaussian Process - Latent Variable Model/ is being introduced along with some extensions for learning a backward mapping and optimizing it for discrimination in the case of multiple classes. Last the /Dynamic Time Warping/ algorithm is presented.
+This chapter introduces some basic concepts needed to understand the proposed approaches. First a high-level overview is given on machine learning and its terminology. Then the Kernel function is explained along with the /Support Vector Machine/ - a kernelized learning method. Following is an explanation of /Gaussian Processes/, their different interpretations and properties. After that the /Gaussian Process - Latent Variable Model/ is being introduced along with some extensions for learning a backward mapping and optimizing it for discrimination in the case of multiple classes. Last two /Sequence similarities measures/ are presented which are used in our implementations.
  
 ** Machine Learning
-Machine Learning is a discipline where one tries to learn from data. 
+Machine Learning is a discipline where one makes inference on real world data.
+
 *** Supervised learning
 Supervised learning is the task of classification or regression when the data is labeled i.e. we have the ground truth of every sample.
 The algorithm then takes the labeled samples (and maybe some confidence values) and infers the model parameters (or hyperparameters) accordingly.
 
 There are two distinct cases in supervised learning:
 
-**** Classification
-\missingfigure{classification example}
+**** *Classification*
+
 Classification is the task of learning which category a sample belongs to. A prominent example is Spam filtering. By taking a large number of emails which are labeled either as spam or as ham (regular email), the algorithm deduces a model which can classify unknown samples into these two categories.
 
-**** Regression
+**** *Regression*
 
 Regression is a terminus in machine learning and means function approximation. Here the domain of the sample's label is continuous. 
 An example would be ...
@@ -206,6 +209,8 @@ An example would be ...
 
 In most cases we search for a good model that explains the data we have. Parametric models, for example, try to learn the ...
 When searching for an appropriate model it is also important that we try to capture the underlying relationship without compromising the generalization property, which is the ability of the model to correctly predict unseen samples. The case that an algorithm learns the relationship of the data that is used to train the model (training data) but poorly predicts new samples is called overfitting.  
+
+
 
 
 
@@ -218,11 +223,9 @@ where $\theta$ are the model parameters and $X$ is the data.
 *** Unsupervised learning
 In contrast to supervised learning in unsupervised learning we have no labeled data i.e. there is no supervisor giving each sample a category (classification) or a value (regression). In this case we can only derive properties of the generation process. Therefore we try to detect patterns in the unlabeled data. These pattern may be clusters of similarity or a lower dimensional generative manifold from which the samples are generated. The last one is called /Dimensionality Reduction/ which will be also a subject in this work. ebib:bishop_pattern_2006 
 
-\missingfigure{dimensionality reduction example}
-
 *K-means algorithm*
 
-An example of an unsupervised learning method for finding a given number of clusters $k$ in given data is the /k-means/ method. The idea is that we first determine the number of clusters and choose $k$ points randomly in the space, which represent the cluster means (center of mass). After that we try to move these points, such that they align into the real data's $k$ centers of mass. This is done by iterating between two steps:
+An example of an unsupervised learning method for finding a given number of clusters $k$ in given data is the /k-means/ method. The idea is that we first determine the number of clusters and choose $k$ points randomly in the space, which represent a guess of the cluster means (center of mass). After that we try to move these points, such that they align with the real data's $k$ centers of mass. This is done by iterating between two steps:
 
 1. Assign each point $x$ to the closest centroid (cluster mean)
 2. Find new centroids by computing the mean of all assigned points for each cluster $k$
@@ -235,7 +238,7 @@ ebib:bishop_pattern_2006
 Generative methods model the underlying process which generates the data. In Bayesian terms we model the likelihood and the. Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes have a natural interpretation. An example of this is \todo{generative model example}
 
 *** Discriminative models
-A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find the model parameters but by not taking the prior into account the model becomes more generative and is susceptible to overfitting.
+A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find an appropriate model. On the other hand by not taking the prior into account the model's ability to generalize unseen data is worse. For this reason discriminative methods are more susceptible to overfitting.
 
 *** Online learning
 Algorithms which can be gradually optimized towards a good solution using streaming batches of samples are considered to do online learning. In contrast to online learning online recognition means that the algorithm works in real-time and fast recognition is possible.
@@ -246,9 +249,34 @@ Very often the bottleneck of powerful supervised learning techniques is that the
 Active learning is in practice a convenient way to acquire new informative samples without letting someone go over a huge amount of data to label.
 
 ** Kernel methods
+Many machine learning algorithms work not with the features directly but instead use only the dot product between features. The dot product between two vectors can be seen as a measure of similarity. 
+
+*** A space defined by sample similarity
+
+Suppose we have $n$ sample points $\bm{x_i}$ of dimensionality $d$: $\bm{x_i} \in \mathcal{R}^d$. When extracting features we try to capture the most characteristic properties of the data for each sample. Let us say that we want to extract $m$ features. Then we have a vector $\bm{z_i} \in \mathcal{R}^m$ which represents each sample. This means that learning is done in a feature space of dimensionality $m$. Another space, where we can reason about the data is a similarity space. Suppose we have a function $k(\bm{x},\bm{y})$ which measures the similarity between point $\bm{x}$ and point $\bm{y}$, then we can define a vector $\bm{s}$ of similarities for a new point $\bm{x_{new}$ by computing the similarity of this point with every other sample: $s_i = k(\bm{x_{new}, \bm{x_i})$. With this we have a vector with $n$ elements each telling us how close the new point is to every other point. If we want to solve a classification problem, for example, it is much easier to create a decision plane inside the $n$ dimensional space instead of an lower $m$ dimensional feature space. 
+
+This similarity measure is also called a /kernel function/.
+We can also define some properties of the kernel function resulting of the informal introduction as a similarity measure.
+
 *** The Kernel trick
+A kernel defines a similarity measure between two points $\bm{x}$ and $\bm{y}$. The kernel function can be defined as the dot product between two feature vectors. 
+$$ k(\bm{x},\bm{y}) = \phi(\bm{x})^T \phi(\bm{y}) $$
+where $\phi(\bm{x})$ is a mapping from the input space (raw data) to a feature space.
+
+If a machine learning algorithm is formulated only in terms of the dot product of two feature vectors, it this term can be exchanged with a kernel. As the kernel defines the feature space, we can work in feature space which are high- and even infinite-dimensional. 
+This is called the kernel trick.
+*** The Radial Basis Function
+
 *** Support Vector Machines
-Suppose we have data which is linearly separable. If we have only two features we can draw all samples as in Figure ... In this case the /best/ line that can separate both classes should be as far apart from all samples as possible. This line can be defined by the samples that are nearest to it. These samples are called support vectors as they are sufficient to span the boundary. For this reason /SVM/ is also called a sparse method as one only needs the support vectors to define the classification boundary. For higher dimensional feature spaces the same idea holds, but instead of having a line we have a plane (a hyperplane) which dissects the space in two parts. As the /SVM/ models the boundary between each class without considering any generative process it is a discriminative model.
+Suppose we have data which is linearly separable. If we have only two features we can draw all samples in a 2D plot. This is shown in Figure [[fig:support-vectors]]. In this case the /best/ line that can separate both classes should be as far apart from all samples as possible. This line can be defined by the samples that are nearest to it. These samples are called support vectors as they are sufficient to span the boundary. For this reason /SVM/ is also called a sparse method as one only needs the support vectors to define the classification boundary. For higher dimensional feature spaces the same idea holds, but instead of having a line we have a plane (a hyperplane) which dissects the space in two parts. As the /SVM/ models the boundary between each class without considering any generative process it is a discriminative model.
+
+
+#+Caption: SVM decision boundary (red) between two classes (cross, circle). The support vectors are indicated in green.
+#+Label: fig:support-vectors
+#+ATTR_LATEX: :width 10cm
+[[file:figures/support-vectors.eps]]
+
+
 
 The assumption that the data is linearly separable can be relaxed in two ways:
 
@@ -256,12 +284,22 @@ Instead of finding a boundary in the feature space we can use the kernel trick t
 
 We can also allow for a small subset of samples to cross the boundary without compromising its discriminative properties. This is called the /soft-margin SVM/.
 
-The theory behind /SVM/ and the fact that the support vectors can be found by optimizing a convex function make this method a very robust way to do classification. For this reason there are multiple implementations of /SVMs/ which are very popular.
+The theory behind /SVM/ and the fact that the support vectors can be found by optimizing a convex function make this method a very robust way to do classification. For this reason there are multiple implementations of /SVMs/ which are very popular and are used very often in practical applications.
 
-\missingfigure{svm and support vectors}
+** Gaussian Processes
+Consider the multivariate Gaussian distribution above. If we want to model the distribution of a discrete function defined over a finite interval,
+we can treat each element of the vector $\bm{x}$ as a point of the function. Thus we can view the multivariate Gaussian distribution as a probability density function over the function space. Letting the dimensionality $d$ go to infinity (the distance between each point goes to zero) we can model continuous functions.
 
-** The Gaussian distribution
-*** Univariate Gaussian distribution
+In this case the mean is a point in function space, thus a function $E[\bm{x}] = f(x)$. And because of the fact that we now have infinite dimensions the covariance can be seen as an "/infinite/ matrix/", thus a function of two elements: $Cov(x,y)$. This can be also seen as a kernel as discussed in [[Kernel Methods]].Therefore it can be seen as a Gaussian distribution over function space.ebib:rasmussen_Gaussian_2006
+
+The marginalization property is what makes Gaussian Processes feasible as it lets us compute likelihoods with a finite part of the covariance function -- which can be seen as a covariance matrix. 
+
+A Gaussian process can be also seen as the bayesean posterior consisting of the product of the (Gaussian) functional prior and the observed samples. Another view is a kernelized regression with infinite parameters. ebib:rasmussen_Gaussian_2006
+
+A Gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting which is an important property as it not needed to perform cross validation.
+
+*** The Gaussian distribution
+**** Univariate Gaussian distribution
 In the one dimensional case the Gaussian distribution is well known and understood. Moreover many processes in nature can be modeled with this distribution and for this reason it is also called the Normal distribution. The probability of an event is very high on a certain "point" (its meain value $\mu$) and it drops quickly on each side with the standard deviation $\sigma$.
 
 $$ \mathcal{N}(\mu, \sigma^2) = \frac{1}{\sigma  \sqrt{2 \pi}}e^{-\frac{x-\mu}{2 \sigma^2}} $$
@@ -295,7 +333,7 @@ As you can see in Figure [[fig:univariate-gaussian]]
 
 One disadvantage of this distribution which we can see from the above formula is that it can model only one hypothesis. This is also the case for the Gaussian distributions of multiple (multivariat Gaussian distribution) and infinite (Gaussian process) dimensions.
 
-*** Multivariate Gaussian distribution
+**** Multivariate Gaussian distribution
 The multivariat Gaussian distribution is the generalization of the Gaussian distribution in higher dimensions.
 
 $$ \mathcal{N}(\bm{\mu}, \bm{\Sigma}) =  \frac{1}{  \sqrt{(2 \pi)^d |\bm{\Sigma}|}}
@@ -307,7 +345,7 @@ The two parameters of the distribution are:
 
 The exponent is mahalanobis distance, which measures the distance of a point to the ellipsoid defined by the covariance matrix.\todo{cite}
 
-*** Properties of Gaussian distributions
+**** Properties of Gaussian distributions
 \todo{Write about total probability and such}
 Aside for being an appropriate model for many processes occurring in nature, Gaussian distributions are also very nice to work with. The marginal and conditional of two Gaussian distributions are also Gaussian. 
 
@@ -327,20 +365,6 @@ Marginal of a multivariate Gaussian:
 Conditional of a multivariate Gaussian: 
 
 \todo{cite Gaussian Winter School slides Philipp Hennig Gaussian Process Summer School 2014 }
-
-** Gaussian Processes
-Consider the multivariate Gaussian distribution above. If we want to model the distribution of a discrete function defined over a finite interval,
-we can treat each element of the vector $\bm{x}$ as an point of the function. Thus we can view the multivariate Gaussian distribution as a probability density function over the function space. Letting the dimensionality $d$ go to infinity (the distance between each point goes to zero) we can model continuous functions. 
-
-In this case the mean is a point in the function space, thus a function $E[\bm{x}] = f(x)$. And because of the fact that we now have infinite dimensions the covariance can be seen as an "/infinite/ matrix/", thus a function of two elements: $Cov(x,y)$.
-
-Thus it can be seen as a Gaussian distribution over the function space. ebib:rasmussen_Gaussian_2006
-
-The marginalization property is what makes Gaussian Processes feasible as it lets us compute likelihoods with a finite part of the covariance function -- which can be seen as a covariance matrix. 
-
-A Gaussian process can be also seen as the bayesean posterior consisting of the product of the (Gaussian) functional prior and the observed samples.??? Another view is a kernelized regression with infinite parameters. ebib:rasmussen_Gaussian_2006
-
-A Gaussian process is a non-parametric model and is governed by the hyperparameters of the used kernel. This also means that the model is less prune to overfitting which is an important property as it not needed to perform cross validation.
 
 *** Kernels
 The most used kernel when using Gaussian Process is the /Radial Basis Function (RBF)/.
@@ -405,19 +429,19 @@ Since the Gaussian distribution is concave it can model only one hypothesis. Thi
 **** high computational complexity
 $\mathcal{O}(n^3)$
 
-There are sparse GP methods which approximate the model. An example are the informative vector machines (IVM) which reduce the complexity to $\mathcal{O}(d^2 n)$ where d is a subset of the samples selected by maximum entropy. ebib:lawrence_fast_2003
-
 **** non-convex optimization of the hyper-parameters
 
+*** Sparse Methods
+As the computation cost for inverting the covariance matrix is cubic, there are some methods which approximate the solution. One of these methods is  the /Informative Vector Machine/ebib:lawrence_fast_2003 where a subset of samples is selected by maximum entropy. This way this active set can explain the data rest of the data, and using it will still result in a good model.
 
-*** Algorithms
-**** Sparse GPs (IVM)
-***** IVM for multiple classes ebib:seeger_sparse_2004
+$$ $$ 
 
+This reduce the complexity to $\mathcal{O}(d^2 n)$ where d is the number of chosen samples.
+There is also an /IVM/ method which works for multiple classes.ebib:seeger_sparse_2004
 
 ** Gaussian Process - Latent Variable Model
 
-The GP-LVM is an unsupervised learning model to perform a non-linear dimensionality reduction from an observed space$X$ to a latent space $Y$ 
+The GP-LVM is an unsupervised learning model to perform a non-linear dimensionality reduction from an observed space $X$ to a latent space $Y$ 
 It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a Gaussian prior for the mapping $f$. Technically a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from latent space to observed space. \todo{formulas etc.} This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a non-linear latent variable model.ebib:lawrence_probabilistic_2005
 
 #+CAPTION: [GP-LVM example]{GP-LVM example: Human pose reduction (walking activity)}
@@ -461,8 +485,6 @@ Having this back-constraints also gives us a mapping from observed space to late
 *** Discriminative GP-LVM
 Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using a /General Discriminant Analysis/ criterion a prior is being enforced on the latent space which ensures that samples from one class are more clustered and different classes are more separated. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
  
-*** Locally-Linear GP-LVM
-ebib:urtasun_modeling_2007-1
 *** Other variants
 **** Bayesian GP-LVM
 An interesting approach for computing the likelihood of the latent variable mapping was proposed in ebib:titsias_bayesian_2010. By using a variational method it becomes possible to marginalize over $X$. Doing so the mapping can be learned together with an \todo{explain ARD} ARD kernel. This way the dimensionality of the manifold can be learned from the data. 
@@ -486,13 +508,12 @@ The idea of the GP-LVM is to learn a mapping from latent space to observation sp
 Resulting from the disadvantages of Gaussian Process regarding the optimization of the hyper-parameters the GP-LVM is also very hard to optimize as its objective function is non-convex. But in the case of GP-LVM we have a much larger optimization space due to the fact the we do not optimize only the hyper-parameters, of the mapping Gaussian Process, but also the latent space itself which is of dimenionality $n$. 
 
 This in fact is the biggest problem as it limits its use on real world data, because for more complex manifold structures there will likely be many local minima. For this reason it is crucial to choose a good initialization. Examples are PCA, Local Linear Embedding or ISOMAP.
-*** GP-LVM for human motion
-As the space of human motion is high-dimensional (spatio-temporal) dimensionality reduction is crucial for a number of models dealing with human motion (e.g. ebib:fan_Gaussian_2011l).
-The GP-LVM preserve the distances in the mapping and are therefore suitable to model human motion with high noise of the poses see Urtasun DGPLVM
-Newest addition is ebib:jiang_modeling_2014
-** Dynamic Time Warping
-The Dynamic Time Warping is an algorithm which tries to find a minimal warping path between two sequences. The sequences can be of arbitrary length.
-Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value.  
+** Sequence similarity measures
+*** Longest Common Subsequence
+
+
+*** Dynamic Time Warping
+The /Dynamic Time Warping/ is an algorithm which tries to find a minimal path between two sequences where the path can be warped in the time dimension. The sequences can be of arbitrary length. 
 
 The recursive definition -- excluding some corner cases -- reveals the workings of this method.
 
@@ -510,9 +531,9 @@ $$
 Where $\text{dist}(x,y)$ is a distance function which tells how close two points are, and $i$ and $j$ are the element indices for the first and second sequence.
 The DTW can be computed with dynamic programming and has a runtime complexity of $\mathcal{O}(n m)$ where $n,m$ are the lengths of the two sequences.
 
-It is closely relates to the /Longest Common Subsequence/ where, instead of minimizing the total warping cost we maximize a common subsequence which is contained in both sequences.
- 
-We consider DTW to be a distance which is not entirely correct as the triangle inequality does not hold. Nevertheless it gives us a notion of how similar two time series are and since it is non-negative ( $d(x,y) >= 0$ ), symmetric ( $d(x,y) = d(y,x)$ ) and respects the identity property ( $d(x,x) = 0$ ) it can be used to define a meaningful, be it not formally correct, kernel. ebib:shimodaira_dynamic_2001
+It is closely relates to the /Longest Common Subsequence/ where, but instead of maximizing a common subsequence, we minimizing the total warping cost between both sequences.
+
+Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value. We consider DTW to be a distance which is not entirely correct as the triangle inequality does not hold. Nevertheless it gives us a notion of how similar two time series are and since it is non-negative ( $d(x,y) >= 0$ ), symmetric ( $d(x,y) = d(y,x)$ ) and respects the identity property ( $d(x,x) = 0$ ) it can be used to define a meaningful, be it not formally correct, kernel. ebib:shimodaira_dynamic_2001
 
 
 
@@ -663,6 +684,12 @@ This way we can prune a large number of incorrect poses and because we model the
 - no time dependency
 - no online capable because of k-means clustering
 
+*** GP-LVM for human motion
+As the space of human motion is high-dimensional (spatio-temporal) dimensionality reduction is crucial for a number of models dealing with human motion (e.g. ebib:fan_Gaussian_2011l).
+The GP-LVM preserve the distances in the mapping and are therefore suitable to model human motion with high noise of the poses see Urtasun DGPLVM
+Newest addition is ebib:jiang_modeling_2014
+
+
 
 * Approach: KMeans clustering approach
 In consequence of the discussed problems above and time constraints we choose to implement another model to have a working system. For this we choose an existing algorithm base on /bag-of-features/ approach published in 2012 ebib:zhang_rgb-d_2012. 
@@ -681,8 +708,8 @@ The data set s consist of an sequence of frames which include:
 - RGBD data
 - Skeleton information: (joint position and orientation)
 - annotated meta information (e.g. activity)
-
-
+** Robot Operating System (ROS)
+The /Robot Operating System/ is  
 ** Shortcomings
 
 Gaussian filter smoothing
@@ -832,7 +859,9 @@ also suggest to use ISOMAP or LLE to initialize the GPLVM and argues that direct
 
 Probabilistic Feature Extraction fromMultivariate Time Series using Spatio-TemporalConstraints
 
-** Approach: GP-Latent Motion Flow Field (based on the gp regreesion flow)
+* Approach: GP-Latent Motion Flow Field (based on the gp regreesion flow)
+It can be argued that the mean poses computed in the /bag-of-features/ method capture the most probable motion tendencies of an activity. The good performance of the algorithm can be attributed to this fact.
+
 Many models which use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the problem remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to use GPRF as classification can be done using second order dynamics which should give better results. Going further the activity itself is characterized by the first and second moments of the trajectory function. By explicitly modeling the velocity of the trajectory we can take changes in the joint movement into account.
 *** The Gaussian Process Regression Flow
  ebib:kim_Gaussian_2011 can be used to model the trajectories in the latent space.
