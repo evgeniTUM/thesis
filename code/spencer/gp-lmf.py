@@ -179,7 +179,7 @@ def get_mocap_data():
 
         
 # # jump sequences
-#     for i in range(count,count+1):
+#     for i in range(count,count+3):
 #         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-count)]))
 #         data[i]['Y'][:, 0:3] = 0.0
 #         index += data[i]['Y'].shape[0]
@@ -187,14 +187,14 @@ def get_mocap_data():
 #         count += 1
 #     class_index.append(index)
 
-# boxing
-#    for i in range(count,count+1):
-#        data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-count)]))
-#        data[i]['Y'][:, 0:3] = 0.0
-#        index += data[i]['Y'].shape[0]
-#        seq_index.append(index)
-#        count += 1
-#    class_index.append(index)
+# # boxing
+#     for i in range(count,count+1):
+#         data.append(GPy.util.datasets.cmu_mocap('14', ['0' + str(i+1-count)]))
+#         data[i]['Y'][:, 0:3] = 0.0
+#         index += data[i]['Y'].shape[0]
+#         seq_index.append(index)
+#         count += 1
+#     class_index.append(index)
 
 
     _data_ = data
@@ -206,7 +206,7 @@ def get_mocap_data():
 
 def get_human_activity_data():
     data_set = DatasetPerson()
-    data = data_set.get_processed_data()
+    data = data_set.get_features()
 
     data = data[::20]
 
@@ -220,8 +220,8 @@ def get_human_activity_data():
 
 
 def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2, X=None):
-    data, seq_index, class_index = get_mocap_data()
-    # data, seq_index, class_index = get_human_activity_data()
+    #data, seq_index, class_index = get_mocap_data()
+    data, seq_index, class_index = get_human_activity_data()
     # data, seq_index, class_index = get_test_data()
 
     back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)
@@ -237,7 +237,7 @@ def show_path(m, X=None):
     if X is None:
         X = m.X
     x, y = calc_y(X)
-    quiver(X[:,0], X[:,1], y[0], y[1])
+    quiver(X[:,0], X[:,1], y[0], y[1], color='r')
 
 
 def seq_index2labels(seq_index):

@@ -124,19 +124,19 @@ class SeqBCGPLVM(SparseGPLVM):
 
         self.prior = DiscriminativePrior(seq_index)
 
-    def DDDobjective_function(self, x):
+    def objective_function(self, x):
         return super(SeqBCGPLVM, self).objective_function(x[:self.num_params_transformed()]) + \
             self.lagr_constraints.objective_function(x[self.num_params_transformed():])
 
-    def DDDobjective_function_gradients(self, x):
+    def objective_function_gradients(self, x):
         return np.hstack((super(SeqBCGPLVM, self).objective_function_gradients(x[:self.num_params_transformed()]),
                           self.lagr_constraints.objective_function_gradients(x[self.num_params_transformed():])))
 
-    def DDDobjective_and_gradients(self, x):
+    def objective_and_gradients(self, x):
         return self.objective_function(), self.objective_function_gradients()
 
 
-    def DDDoptimize(self, optimizer=None, start=None, **kwargs):
+    def optimize(self, optimizer=None, start=None, **kwargs):
         if start is None:
             start = np.hstack((self._get_params_transformed(),
                                self.lagr_constraints._get_params()))
@@ -164,18 +164,18 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
     seq_index = [0]
     index = 0
 # walk sequences
-    for i in range(3):
+    for i in range(2):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
-        seq_index.append(index)
+    seq_index.append(index)
 
-# jump sequences
-    # for i in range(3,5):
-    #     data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-3)]))
-    #     data[i]['Y'][:, 0:3] = 0.0
-    #     index += data[i]['Y'].shape[0]
-    #     seq_index.append(index)
+    # jump sequences
+    for i in range(2,4):
+        data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-2)]))
+        data[i]['Y'][:, 0:3] = 0.0
+        index += data[i]['Y'].shape[0]
+    seq_index.append(index)
 
 # # boxing
 #     for i in range(5,7):

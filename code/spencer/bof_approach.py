@@ -123,6 +123,18 @@ def compute_histogram(code, clusters):
     histogram = np.array(histogram) / float(len(code))
     return histogram
 
+def plot_histogram(data, clusters, cl):
+    import numpy as np
+    import matplotlib.mlab as mlab
+    import matplotlib.pyplot as plt
+
+    plt.hist(x, clusters, normed=1, facecolor='black', alpha=0.75)
+
+    plt.xlabel('centroids (poses) for class '+str(cl))
+    plt.ylabel('Probability')
+    plt.grid(True)
+
+    plt.show()
 
 
 

@@ -6,7 +6,7 @@ from utils import dtw
 from dataset import DatasetPerson
 
 
-sparsity = 10
+sparsity = 1
 
 def get_mocap_data(subject=35 , motion=01):
     data = []
@@ -62,13 +62,29 @@ def get_mocap_data(subject=35 , motion=01):
 # 12, working on computer,
 # 13, random,
 
+# 4: 91,94
+
+
+# 3: 65, 75
+#    mah 38, 38
+#         gt    [6, 3, 11, 8, 13, 2, 12, 9, 2, 7, 10, 2, 4, 4, 5, 1]
+#         pred  [6, 11, 11, 8, 6, 2, 12, 9, 2, 7, 8, 2, 4, 4, 5, 8]
+    
+# 2: 79, 81
+#         gt  [9, 12, 4, 4, 2, 11, 13, 8, 7, 1, 3, 2, 6, 10, 5, 2]
+#         pred [9, 12, 4, 4, 2, 11, 13, 8, 7, 5, 3, 2, 6, 5, 5, 4]
+# 1: 83, 88
+#        gt    [9, 4, 10, 3, 3, 13, 11, 8, 7, 1, 12, 4, 5, 4, 2, 6]
+#        pred  [9, 4, 10, 3, 3, 13, 11, 8, 9, 1, 9, 4, 5, 4, 2, 6]
+#
+
 
 
 def test_adl():
 
     person = []
-    for i in range(3):
-        person.append(DatasetPerson(person=i+1))
+    for i in [1,2,3]:
+        person.append(DatasetPerson(person=i))
         
         
     classes = {}
@@ -136,14 +152,10 @@ def test_adl():
                 
             score_mah.append(sum(sample_prediction_mah)/len(cl['samples']))
             score.append(sum(sample_prediction)/len(cl['samples']))
-            score_mah_min.append(min(sample_prediction_mah))
-            score_min.append(min(sample_prediction))
             
 
         prediction_mah.append(np.argmin(score_mah))
         prediction.append(np.argmin(score))
-        prediction_mah_min.append(np.argmin(score_mah_min))
-        prediction_min.append(np.argmin(score_min))
 
 
 
