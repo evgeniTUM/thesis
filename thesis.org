@@ -98,7 +98,7 @@
 #+STYLE: &lt;link rel="stylesheet" type="text/css" href="css/org.c
 
 
-
+ 
 * Introduction
 
 #+begin_latex
@@ -128,13 +128,10 @@ For real robotic tasks it is very important that the activity recognition is onl
 
 Advantages of skeletal features are that no person sensitive information has to be processed by the learning algorithm. In the context of the SPENCER project this is an important prerequisite. Another advantage is also that the skeletal features are very informative for activity recognition. Also beginning to concept an algorithm that builds on top of robust pose estimation reduces the complexity, as we can fully ignore the pose estimation problem.
 
-\missingfigure{xtion}
 
 *** The SPENCER project
-\missingfigure{spencer robot}
 With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
 
-\missingfigure{skeleton representation}
 
 
 
@@ -370,7 +367,6 @@ Conditional of a multivariate Gaussian:
 The most used kernel when using Gaussian Process is the /Radial Basis Function (RBF)/.
 
 **** Effects of the hyper-parameters
-\missingfigure{hyperparameter effects on regression}
 *** Regression
 #+begin_src python :results file :session :results replace :exports results
 
@@ -445,7 +441,6 @@ The GP-LVM is an unsupervised learning model to perform a non-linear dimensional
 It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a Gaussian prior for the mapping $f$. Technically a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from latent space to observed space. \todo{formulas etc.} This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a non-linear latent variable model.ebib:lawrence_probabilistic_2005
 
 #+CAPTION: [GP-LVM example]{GP-LVM example: Human pose reduction (walking activity)}
-\missingfigure{example GP-LVM, skeleton}
 
 
 
@@ -480,7 +475,6 @@ As initially proposed the standard way of initializing the latent space is using
 One problem with this model is that it does not preserve local distances in the latent space. This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $g_i(y_i) = x_i$ is introduced which constrains the points in latent space to be more near if they are also near in observed space. Instead of optimizing directly on $X$ the back-constrained GP-LVM optimizes the mapping $X=f(Y)$ instead. This back-constrained mapping 
 
 Having this back-constraints also gives us a mapping from observed space to latent space which can be used to project a new sample into the latent space without costly maximum likelihood estimates. 
-\missingfigure{example BCGPLVM}
 
 *** Discriminative GP-LVM
 Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using a /General Discriminant Analysis/ criterion a prior is being enforced on the latent space which ensures that samples from one class are more clustered and different classes are more separated. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
@@ -694,30 +688,6 @@ Newest addition is ebib:jiang_modeling_2014
 * Approach: KMeans clustering approach
 In consequence of the discussed problems above and time constraints we choose to implement another model to have a working system. For this we choose an existing algorithm base on /bag-of-features/ approach published in 2012 ebib:zhang_rgb-d_2012. 
 
-\missingfigure{bof approach}
-** Datasets
-*** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
-
-\missingfigure{sample images from the dataset}
-Active learning using Gaussian Processes.
-We will use the "Cornell Activity Datasets (CAD-60 & CAD-120)"[fn:1] to learn and evaluate 
-the performance of an implementation of Gaussian Processes. 
-
-The data set s consist of an sequence of frames which include: 
-- Image data
-- RGBD data
-- Skeleton information: (joint position and orientation)
-- annotated meta information (e.g. activity)
-** Robot Operating System (ROS)
-The /Robot Operating System/ is  
-** Shortcomings
-
-Gaussian filter smoothing
-
-
-The /bag-of-features/ approach performs very well but it does not capture the order of the underlying poses. Instead by performing histogram pooling, it has a notion of how prevalent each pose is for every activity. 
-
-To circumvent this we modified the method to classify with the /Longest Common Subsequence (LCS)/ algorithm. Instead of performing a histogram pooling we classify each quantized sequence using the average /LCS/ distance for each class. The standard algorithm for the /LCS/ for two sequences is implemented, just like in the case of the /DTW/, with dynamic programming. Therefore it has a run-time complexity of $\mathcal{O}(n*m)$. Several algorithms exist which reduce this complexity by making some kind of assumptions about the data \todo{cite source  survey LCS}. In our case this is not needed as we already know that different activities will contain different poses. For this reason we can simply remove all elements which are not in the intersection of both sequences as a pre-processing step.
 
 * Approach: Discriminative Sequence Back-Constrained GP-LVM
 ** Feature extraction
@@ -821,7 +791,6 @@ measure is to be preserved in the latent spaces.
 
 This constraints are being enforced in the optimization by adding Lagrangians to the objective function.
 
-\missingfigure{example of discriminative and back-constrained latent space}
 
 Furthermore, by applying the Discriminative GP-LVM we ensure that poses of different activities are separated from each other and poses from similar activities are located closer together. This ensures that the centroid of an activity is more informative and thus discriminative. The Discriminative GP-LVM works by also maximizing the between class variance and minimizing the in-class similarity ebib:urtasun_discriminative_2007 \todo{expain D GP-LVM properly}
 Also by applying the Discriminative GP-LVM the clustering of similar actions and
@@ -879,7 +848,6 @@ This model is attractive for two reasons. First real-time classification of inco
 
 The idea is to learn a motion field in the latent space for each activity. This can be achieved by learning the velocity function of the latent point just like in the GPRF model presented above. With the difference that we do not use the spatio-temporal domain but spatial domain of the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. On top of that we also want to recognize an activity which is being interrupted by another activity, so we can't fix the lengths of the trajectories. 
 
-\missingfigure{example of several flow fields inside latent space}
 
 Each activity has its own flow field. Recognition and prediction is done by calculating the energy of the currently moving point with each different field. The field with the minimum energy represents the most probable activity as the point follows more closely its "current" of motion.
 
@@ -932,18 +900,7 @@ The initial idea was to learn a general dimensionality reduction for a high numb
  
 We deploy GP for learning the flow field which gives us several advantages.
 
-One problem we encounter by learning the motion flow field from several samples is complexity of the Gaussian Process. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take IVM as the sparse GP model both approaches can be seen as equivalent as the IVM will automatically take the most informative samples.
-
-\missingfigure{latent space (several samples of one activity) with flow field}
-**** Effects of the hyperparameters
-
-Changing the /lengthscale/ defines how much each point is contributing to the regression process. It can be interpreted as a smoothness factor which governs how strong the interpolation of the flow field is performed on the latent points.
-
-Changing the signal variance controls how much 
-
-
-\missingfigure{effect of hyperparameters on the resulting flow field}
-
+One problem we encounter by learning the motion flow field from several samples is complexity of the Gaussian Process. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take IVM as the sparse GP model both approaches can be seen as equivalent as the IVM will automatically take the most informative samples. 
 
 
 *** Interpretation
@@ -987,7 +944,7 @@ Energy minimization:
 $$ E_{t_1,t_n} = \sum_{i \in \mathcal{T}, j \in \mathcal{T}} E_{i,j} + regularizer $$
 
 where the regularizer ensures that we do not change flow fields often...
-
+ 
 * Conclusions and Outlook
 ** Summary
 *** Dimensionality reduction for all activities is very difficult (also with extra constraints)
