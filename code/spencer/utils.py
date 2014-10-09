@@ -30,8 +30,8 @@ def dtw(s, t, dist=None):
         for j in range(1, m+1):
             cost = dist(s[i-1], t[j-1])
             DTW[i, j] = cost + min(DTW[i-1, j],
-                                       DTW[i, j-1],
-                                       DTW[i-1, j-1])
+                                   DTW[i, j-1],
+                                   DTW[i-1, j-1])
 
     return DTW[n, m]
 

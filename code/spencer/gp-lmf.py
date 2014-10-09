@@ -206,9 +206,9 @@ def get_mocap_data():
 
 def get_human_activity_data():
     data_set = DatasetPerson()
+    data_set.load_activity('0512173623')
     data = data_set.get_features()
 
-    data = data[::20]
 
     class_index = [0]
     seq_index = [0]

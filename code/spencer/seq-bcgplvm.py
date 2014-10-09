@@ -3,6 +3,7 @@ import math
 from GPy.core import Mapping
 from utils import dtw
 from priors import DiscriminativePrior
+from dataset import DatasetPerson
 
 
 class SeqConstraints(Mapping):
@@ -111,18 +112,20 @@ class SeqBCGPLVM(SparseGPLVM):
     :type init: 'PCA'|'random'
 
     """
-    def __init__(self, Y, input_dim, seq_index, init='PCA', X=None,
+    def __init__(self, Y, input_dim, seq_index, class_index, init='PCA', X=None,
                  kernel=None, normalize_Y=False, sigma=0.5):
 
+        print Y.shape
         self.sigma = float(sigma)
         self.seq_index = seq_index
+        self.class_index = class_index
         self.lagr_constraints = SeqConstraints(self, Y, seq_index, input_dim)
 
 
         SparseGPLVM.__init__(self, Y, input_dim, init=init, kernel=kernel, num_inducing=100)
 
 
-        self.prior = DiscriminativePrior(seq_index)
+        self.prior = DiscriminativePrior(class_index)
 
     def objective_function(self, x):
         return super(SeqBCGPLVM, self).objective_function(x[:self.num_params_transformed()]) + \
@@ -175,7 +178,8 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
         data.append(GPy.util.datasets.cmu_mocap('16', ['0' + str(i+1-2)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
-    seq_index.append(index)
+        seq_index.append()
+    class_index.append(index)
 
 # # boxing
 #     for i in range(5,7):
@@ -189,6 +193,40 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
 
     _data_ = data
     return m
+
+def create_human_activity_model(sigma=0.5, init='PCA'):
+    class_index = [0]
+    seq_index = [0]
+
+    data = []
+    data_set = DatasetPerson()
+
+    index = 0
+    for activity in ['0512173623', '0512173520']:
+        data_set.load_activity(activity)
+        sequence = data_set.get_features()
+        data.append(sequence)
+        index += sequence.shape[0]
+        seq_index.append(index)
+    class_index.append(index)
+
+    for activity in ['0512165243', '0512165327']:
+        data_set.load_activity(activity)
+        sequence = data_set.get_features()
+        data.append(sequence)
+        index += sequence.shape[0]
+        seq_index.append(index)
+    class_index.append(index)
+
+    print seq_index
+    print class_index
+
+    m = SeqBCGPLVM(np.vstack(data), 2, seq_index, class_index, sigma=sigma, init=init)
+
+    _data_ = data
+    return m
+    
+
 
 
 def createSeqModel(sigma=0.5, lengthscale=1.0):
