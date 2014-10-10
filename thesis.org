@@ -128,13 +128,10 @@ For real robotic tasks it is very important that the activity recognition is onl
 
 Advantages of skeletal features are that no person sensitive information has to be processed by the learning algorithm. In the context of the SPENCER project this is an important prerequisite. Another advantage is also that the skeletal features are very informative for activity recognition. Also beginning to concept an algorithm that builds on top of robust pose estimation reduces the complexity, as we can fully ignore the pose estimation problem.
 
-\missingfigure{xtion}
 
 *** The SPENCER project
-\missingfigure{spencer robot}
 With the modern technologies (ms Kinect SDK, primesense ...) it is possible to decouple skeleton tracking and learning
 
-\missingfigure{skeleton representation}
 
 
 
@@ -189,7 +186,7 @@ We assume a basic understanding in /Linear Algebra/ and /Probability theory/ . A
 This chapter introduces some basic concepts needed to understand the proposed approaches. First a high-level overview is given on machine learning and its terminology. Then the Kernel function is explained along with the /Support Vector Machine/ - a kernelized learning method. Following is an explanation of /Gaussian Processes/, their different interpretations and properties. After that the /Gaussian Process - Latent Variable Model/ is being introduced along with some extensions for learning a backward mapping and optimizing it for discrimination in the case of multiple classes. Last two /Sequence similarities measures/ are presented which are used in our implementations.
  
 ** Machine Learning
-Machine Learning is a discipline where one makes inference on real world data.
+Machine Learning is a discipline where one makes inference on real world data. Data consists of different samples
 
 *** Supervised learning
 Supervised learning is the task of classification or regression when the data is labeled i.e. we have the ground truth of every sample.
@@ -207,7 +204,7 @@ Regression is a terminus in machine learning and means function approximation. H
 An example would be ...
 
 
-In most cases we search for a good model that explains the data we have. Parametric models, for example, try to learn the ...
+In most cases we search for a good model that explains the data we have. Parametric models, for example, have a pre-defined model which is parametrized. 
 When searching for an appropriate model it is also important that we try to capture the underlying relationship without compromising the generalization property, which is the ability of the model to correctly predict unseen samples. The case that an algorithm learns the relationship of the data that is used to train the model (training data) but poorly predicts new samples is called overfitting.  
 
 
@@ -230,18 +227,18 @@ An example of an unsupervised learning method for finding a given number of clus
 1. Assign each point $x$ to the closest centroid (cluster mean)
 2. Find new centroids by computing the mean of all assigned points for each cluster $k$
 
-Doing so it is guaranteed that the algorithm will converge, although it could be a local minimum. 
+Doing so it is guaranteed that the algorithm will converge, although it could be in a local minimum. 
 
 ebib:bishop_pattern_2006
 
 *** Generative models
-Generative methods model the underlying process which generates the data. In Bayesian terms we model the likelihood and the. Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes have a natural interpretation. An example of this is \todo{generative model example}
+Generative methods model the underlying process which generates the data. In Bayesian terms we model the likelihood and the . Thus more data is needed to find an appropriate model. On the other side the model is very flexible and many attributes have a natural interpretation. An example of this is \todo{generative model example}
 
 *** Discriminative models
 A discriminative model is only concerned with modeling the actual posterior. This way fewer samples are needed to find an appropriate model. On the other hand by not taking the prior into account the model's ability to generalize unseen data is worse. For this reason discriminative methods are more susceptible to overfitting.
 
 *** Online learning
-Algorithms which can be gradually optimized towards a good solution using streaming batches of samples are considered to do online learning. In contrast to online learning online recognition means that the algorithm works in real-time and fast recognition is possible.
+Algorithms which can be gradually optimized towards a good solution using streaming batches of samples are considered to do online learning. In contrast to online learning online recognition means that the algorithm works in real-time and fast recognition is possible. 
 
 *** Active learning
 Very often the bottleneck of powerful supervised learning techniques is that they rely on a large number of correctly labeled data. Since labeling has to be performed by a human it is very difficult and costly to label large amount of data. By identifying more important samples by their information ability of selecting a good model, it is possible to achieve good results with fewer samples. Letting the algorithm select such samples and query only their labels from a human, who is now actively participating in the learning loop, is called active learning. 
@@ -370,7 +367,6 @@ Conditional of a multivariate Gaussian:
 The most used kernel when using Gaussian Process is the /Radial Basis Function (RBF)/.
 
 **** Effects of the hyper-parameters
-\missingfigure{hyperparameter effects on regression}
 *** Regression
 #+begin_src python :results file :session :results replace :exports results
 
@@ -445,7 +441,6 @@ The GP-LVM is an unsupervised learning model to perform a non-linear dimensional
 It does this by maximizing the likelihood $$p(Y|X) = p(Y|f)p(f|X)$$ using a Gaussian prior for the mapping $f$. Technically a GP-LVM is a product of Gaussian Processes which model a regression of the mapping from latent space to observed space. \todo{formulas etc.} This means also that if we want to compute the latent position of a new observed sample we have to compute the ...\todo{elaborate GP-LVM}. Using a linear kernel the model generalizes to \todo{PCA} PCA. By using a non linear kernel a non-linear mapping is inferred making it a non-linear latent variable model.ebib:lawrence_probabilistic_2005
 
 #+CAPTION: [GP-LVM example]{GP-LVM example: Human pose reduction (walking activity)}
-\missingfigure{example GP-LVM, skeleton}
 
 
 
@@ -480,10 +475,9 @@ As initially proposed the standard way of initializing the latent space is using
 One problem with this model is that it does not preserve local distances in the latent space. This is because it tries to explain the data by moving distant samples from the observed space also far apart in the latent space. This problem is addressed by Lawrence et al. in the back-constrained GP-LVM ebib:lawrence_local_2006. A mapping $g_i(y_i) = x_i$ is introduced which constrains the points in latent space to be more near if they are also near in observed space. Instead of optimizing directly on $X$ the back-constrained GP-LVM optimizes the mapping $X=f(Y)$ instead. This back-constrained mapping 
 
 Having this back-constraints also gives us a mapping from observed space to latent space which can be used to project a new sample into the latent space without costly maximum likelihood estimates. 
-\missingfigure{example BCGPLVM}
 
 *** Discriminative GP-LVM
-Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using a /General Discriminant Analysis/ criterion a prior is being enforced on the latent space which ensures that samples from one class are more clustered and different classes are more separated. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.ebib:urtasun_discriminative_2007
+Another improvement in the context of classification in latent space is the Discriminative GP-LVM ebib:urtasun_discriminative_2007. Using a /General Discriminant Analysis/ criterion a prior is being enforced on the latent space which ensures that samples from one class are more clustered and different classes are more separated. This is done by maximizing the between-class separability and minimizing the within-class variability while optimizing the log likelihood of the GP-LVM.
  
 *** Other variants
 **** Bayesian GP-LVM
@@ -509,8 +503,6 @@ Resulting from the disadvantages of Gaussian Process regarding the optimization 
 
 This in fact is the biggest problem as it limits its use on real world data, because for more complex manifold structures there will likely be many local minima. For this reason it is crucial to choose a good initialization. Examples are PCA, Local Linear Embedding or ISOMAP.
 ** Sequence similarity measures
-*** Longest Common Subsequence
-
 
 *** Dynamic Time Warping
 The /Dynamic Time Warping/ is an algorithm which tries to find a minimal path between two sequences where the path can be warped in the time dimension. The sequences can be of arbitrary length. 
@@ -519,7 +511,7 @@ The recursive definition -- excluding some corner cases -- reveals the workings 
 
 #+begin_latex
 $$
-\text{dtw}_{x,y}(i, j) = \text{dist}(x_i, y_j) + \text{min}
+\text{dtw}_{\bm{x},\bm{y}(i, j) = \text{dist}(x_i, y_j) + \text{min}
 \begin{cases}
    \text{dtw}_{x,y}(i-1, j) \\
    \text{dtw}_{x,y}(i, j-1) \\
@@ -535,9 +527,24 @@ It is closely relates to the /Longest Common Subsequence/ where, but instead of 
 
 Since we are not interested in the path itself but in the cost of the minimal path we define the DTW as a mapping from two time series to an real value. We consider DTW to be a distance which is not entirely correct as the triangle inequality does not hold. Nevertheless it gives us a notion of how similar two time series are and since it is non-negative ( $d(x,y) >= 0$ ), symmetric ( $d(x,y) = d(y,x)$ ) and respects the identity property ( $d(x,x) = 0$ ) it can be used to define a meaningful, be it not formally correct, kernel. ebib:shimodaira_dynamic_2001
 
+*** Longest Common Subsequence
+The /Longest Common Subsequence/ algorithm finds the biggest non-consecutive subsequence that is contained inside two sequences. Its recursive definition is:
+
+#+begin_latex
+$$
+\text{lcs}_{x,y}(i, j) = 
+\begin{cases}
+   \text{lcs}_{x,y}(i-1, j-1) + 1 \text{ if } x_i = y_i\\ 
+   \text{max} (\text{lcs}_{x,y}(i-1, j), \text{lcs}_{x,y}(i,j-1)) \text{ otherwise}
+\end{cases}
+$$
+#+end_latex
+
+This can be implemented using dynamic programming and has a run-time complexity of $\mathcal{O}(n  m)$ where $m$ and $n$ are the lengths of the sequences. Several algorithms exist which reduce this complexity by making some kind of assumptions about the data \todo{cite source  survey LCS}.
 
 
-* Related work
+
+* Related work                                                     :noexport:
 This chapter will introduce some models and their corresponding algorithms for activity recognition. An emphasis is led on methods which work with skeleton data. In the last part a short analysis is done on these methods and some observations are discussed.
 
 ** Overview
@@ -701,7 +708,6 @@ The idea is illustrated in Figure [[fig:bof-approach]]:
 - Compute a fixed sized vector that represents the distribution of each mean pose. By computing the histogram over the previous sequence and normalizing we capture the occurrence of each pose representing the feature clusters  (bag-of-features). 
 - Perform classification using this new feature vector. Using a linear /Support Vector Machine/ we learn the activities along with their corresponding labels.
 
-\missingfigure{bof approach}
 
 
 The above algorithm works very well in practice. This can be explained by the fact that the mean poses are very distinct for different activities. This means that they capture the most discriminative poses of the activity which can be robustly recognized.
@@ -711,12 +717,10 @@ The above algorithm works very well in practice. This can be explained by the fa
 
 
 
-** Datasets
-*** [[http://pr.cs.cornell.edu/humanactivities/data.php][Cornell Activity Dataset]]
+** Cornell Daily Living Activities dataset
 
-\missingfigure{sample images from the dataset}
 We will use the "Cornell Activity Datasets (CAD-60 & CAD-120)"[fn:1] to learn and evaluate 
-the performance of an implementation of Gaussian Processes. 
+the performance of our implementation. 
 This dataset is challenging as it contains complex daily living activities, some of which are very close together. There are four persons each performing 13 activities. 
 The activities /brushing teeth/, /brushing mouth
 
@@ -753,11 +757,11 @@ We implemented a new ros module called /activity_recognition/ which subscribes t
 The skeleton tracking is very noisy. We observed very big variations between subsequent frames. Therefore we performed a discrete Gaussian filter smoothing for each sequence. Unfortunately the recognition rate did not improve.
 
 We observed that the number of prevalent poses is not sufficient to capture the variances inside some classes. 
-For this reason we performed K-Means for each class of activities separately and used the BallTree algorithm to perform nearest neighbor for the recognition. With this it is more likely that same activities will fall to the same mean poses as they are more evenly distributed between the classes. Moreover this allows us to extract more mean poses as the K-Means algorithm has to run only on the samples of each class separately.
+For this reason we performed K-Means for each class of activities separately and used the ball-tree nearest neighbor algorithm quantize the sequences for the recognition. With this it is more likely that same activities will fall to the same representative poses as they are more evenly distributed between the classes. Moreover this allows us to extract more mean poses as the K-Means algorithm has to run only on the samples of each class separately.
 
 The /bag-of-features/ approach performs very well but it does not capture the order of the underlying poses. Instead by performing histogram pooling, it has a notion of how prevalent each pose is for every activity. 
 
-To circumvent this we modified the method to classify with the /Longest Common Subsequence (LCS)/ algorithm. Instead of performing a histogram pooling we classify each quantized sequence using the average /LCS/ distance for each class. The standard algorithm for the /LCS/ for two sequences is implemented, just like in the case of the /DTW/, with dynamic programming. Therefore it has a run-time complexity of $\mathcal{O}(n*m)$. Several algorithms exist which reduce this complexity by making some kind of assumptions about the data \todo{cite source  survey LCS}. In our case this is not needed as we already know that different activities will contain different poses. For this reason we can simply remove all elements which are not in the intersection of both sequences as a pre-processing step.
+To circumvent this we modified the method to classify with the /Longest Common Subsequence (LCS)/ algorithm. Instead of performing a histogram pooling we classify each quantized sequence using the average /LCS/ distance for each class. The standard algorithm for the /LCS/ for two sequences is implemented, just like in the case of the /DTW/, with dynamic programming.  In our case this is not needed as we already know that different activities will contain different poses. For this reason we can simply remove all elements which are not in the intersection of both sequences as a pre-processing step.
 
 A second idea was to compare the sequences using /Dynamic Time Warping/. For this we chose as a measure between each mean pose the euclidean distance in feature space, which will give a good approximation in the case that the clusters are located far away. As the /DTW/ has a complexity of $\mathcal{O}(n*m)$ we took every fifth element from the sequence for the calculation.
 Also by pre-computing the distance matrix the distance operation is a simple look-up operation and the algorithms is fast enough. 
@@ -769,59 +773,24 @@ One serious drawback of this approach is that only a fixed time interval can be 
 We performed 4-fold cross validation using each person as test data and the other three persons for training.
 We achieved a comparable precision rate of 84% and recall rate of 84% as stated in the paper. Using the /LCS/ measure we achieved an precision and accuracy of 88%.
 
+We also tested the prediction rate using only 100 frames for the prediction. By uniformly sampling 50 intervals from each test sequence the algorithm achieved the same average accuracy and precision of 88%. It can thus be argued that the most discriminative information for the classification task is inside the powerful features that are extracted and the representative poses produced by the clustering..  
+
 * Approach: Discriminative Sequence Back-Constrained GP-LVM
-As discussed earlier the simple /bag-of-features/ approach has its limitations as it is not capable of identifying activity transitions.
-
-  
-** Feature extraction
-Regardless of the chosen algorithm the features used for learning will have a big impact on the performance of the model. Therefore it is imperative to extract discriminative features from the skeleton data.
-
-We get the joint positions and the angles between them in the camera frame defined by the used depth camera (.e.g Microsoft's Kinect).When extracting features we have to make sure that we have view invariant features of the skeleton. We want these data in the frame of the skeleton.
-
-One way to achieve scale invariance is to normalize all link lengths in respect to the torso link. This correct for variances of skeleton lengths in different persons. To make the pose view invariant we have to define a local skeleton frame which captures the skeletons /orientation/ in the world coordinate system.
-
-#+Caption: Sketch of the local skeleton frame inside the camera frame. The rotation matrix $\bm{R}$ and the translation vector $\bm{t}$ define the needed transformation to change from camera coordinates to the local skeleton coordinates
-#+Label: fig:skeleton-frame
-#+ATTR_LATEX: :width 10cm
-[[file:figures/skeleton-frame.eps]]
-
-Another way to achieve view invariance is to not consider the 3D points of the joints all together but instead to take only relative features. These can be, for example the angles or distances between two adjacent joints. An interesting approach is used in ebib:theodorakopoulos_pose-based_2014, which is to define a polar coordinate frame for each joint and use only two angles, which define the orientation of the joint in a polar coordinate frame, as features. This way we also reduce the observation space. 
-
-As discussed in [[Related Work]] many methods also make the extracted temporal features (e.g. Eigenjoints). However since we want to include the dynamics in our model we do not extract such features explicitly.
-
-We selected a 3D point cloud of the joints in the skeletons own coordinate frame as features. The reason for this is that we believe the 3D point cloud to be more linear than relative features, which in turn will help when optimizing the model. Figure [[fig:skeleton-frame]] shows this approach. We chose the two vectors -- torso to right hip and torso to left hip -- to define our local coordinate system. By normalizing and computing the cross product we have also the third vector which points to the walking direction of the skeleton. 
-
-** Dynamic time warping with mahalanobis distance 
-The Dynamic Time Warping algorithm is a prominent and very effective choice for computing similarity between two sequences. The problem with this approach, in the context of activity recognition, is how to define the distance metric between two poses.
-
-Popular choices for the distance function is the euclidean distance, if 3D points are used as features, and the angular distance for angles. The problem with these two distances is that they are just the sum of the individual feature differences. As the dimensionality grows this metric becomes less informative. 
-
-In the case of human poses we have a certain notion of which poses are similar and which are far apart. Maybe this is due to the fact that we inherently know -- or classify -- to which activity the pose corresponds to and have therefore some notion of closeness with respect to an activity which cannot be approximated with the euclidean distance. Poses from different activities will most likely also seem to be more or less similar depending on how similar the actions are.
-
-One idea to transfer this knowledge is by using the Mahalanobis distance instead of the euclidean distance when computing the similarity of two pose sequences. By computing the covariance for each activity we have some notion of the variance across all feature dimensions for a specific class. This way we can capture -- to some extent -- the variability for each class. Now we can compute a similarity measure with a new sequence $x_new$ for each class and each sample of this class. Thus we can define a notion of measure between a class and a new sample by:
-
-$$ s(j, \bm{x_{new}}) = \frac{1}{|C_j|} \sum_{\bm{x} \in C_j} \frac{\text{DTW}_{\text{mahalanobis}(\bm{\Sigma_j^{-1}})}(\bm{x}, \bm{x_{new}})}
-{min(|\bm{x_i}|, |\bm{x_{new}|)}} $$
-
-where $C_j$ is the set containing all class sequences and $|C_j|$ is the number of sequences in class $j$. The normalization factor $min(|\bm{x_i}|, |\bm{x_new}|)$ makes sure that the minimum cost computed by the $\text{DTW}$ is proportional to the smallest sequence.
-
-This way the distance error is distributed by a way defined by the variance across each dimension.
-
-A similar idea was also proposed in the context of handwritten signature verification in ebib:qiao_learning_2011, which uses just one covariance matrix.
-The covariance matrix is determined such that, just like in the case of Discriminant GP-LVM, it maximizes the variability between classes and minimizes the difference for samples in the same class. 
-In contrast to our approach the overall covariance matrix may define a more meaningful and discriminative measure but it is also more difficult to update when performing online learning and when learning a new class (novelty detection).
-
-*** Implementation
-We wrote a simple version of the Dynamic Time Warping in Python using dynamic programming and following the recursive definition in chapter [[Dynamic Time Warping]]. As the variance for some feature dimensions can be zero the constructed covariance matrix does not have full rank and thus cannot be inverted. We mitigate this problem with an approximation of the inverse by computing the pseudoinverse.
+As discussed earlier the simple /bag-of-features/ approach has its limitations as it is not capable of identifying activity transitions. To deal with this problem we choose to implement another algorithm, capable of classifying a sequence in real time and inherently taking the alignment of the sequences into account. 
 
 ** Discriminative Sequence Back-Constrained GP-LVM
-At first we concentrated our efforts for learning with the MOCAP data. In theory the data collected data from the kinect should be equivalent. One difference is the high noise in the pose estimation, but due to the fact that the GP-LVM preserves distances rather than locality this problem is mitigated to a certain degree.
-
-
 
 In the paper "Discriminative Sequence Back-Constrained GP-LVM for MOCAP Based
-Action Recognition"ebib:_discriminative_2013 the authors propose a method for
-classifying MOCAP actions.
+Action Recognition"ebib:_discriminative_2013 the authors propose a method for classifying MOCAP \todo{cite mocap} actions.
+
+The MOCAP database consists of a large number of different activities performed by human actors and recorded using motion capture devices. The information recorded is comparable to the skeleton representation but contains more data and is virtually noise free.
+
+The method proposed in ebib:_discriminative_2013 is illustrated in Figure [[fig:discr-seq-approach]]
+
+The idea is to perform a dimensionality reduction on the skeleton data, resulting in a much compact representation. By introducing a /DTW/ based sequence alignment kernel similarity measures can be defined for the activities. By using this similarity measure for the sequences in the observed space and constraining the optimization to preserve this measure the local distances between the sequences are transferred into the latent space. The latent points of similar sequences are thus located nearby and the centroids of similar activities are distributed more close to each other. Then instead of using back-constraints to map a single pose sample into the latent space, we can compute the centroid in the latent space directly from a sequence of poses.
+
+
+
 
 #+begin_src dot :file figures/seq-gplvm-approach.png
    digraph pipeline {
@@ -850,53 +819,62 @@ classifying MOCAP actions.
   }
 #+end_src
 
-#+RESULTS:
-[[file:figures/seq-gplvm-approach.png]]
+
+#+Caption: Illustration of the "Discriminative sequence back-constrained GP-LVM" approach. Learning is done by training a GP-LVM together with the sequence-back constraints and discriminative constraints. After that an Linear SVM is trained by the class centroids and the corresponding labels. Recognition is performed by computing the centroid of a new sequence through the learned back-constraints and predicting with the SVM.
+#+Label: fig:discr-seq-approach
+[[file:figures/discr-seq-approach.eps]]
 
 
-By using a similarity feature for the sequences in
-the observed space and constraining the optimization to preserve this measure
-the local distances between the sequences are transferred into the latent space.
-This has two advantages. 
+The sequence back-constraints have two advantages:
 
-First all the sequences have a meaningful clustering in the latent space as 
+First all the sequences have a meaningful clustering in the latent space and thus the mean (centroid) of each sequence is a good representation.
 
 Second by also learning the back-constraint it is possible
-to calculate the centroid of a sequence in the latent space directly without
-maximizing a likelihood. This in turn is being used to do real-time
-classification for actions.
+to calculate the centroid of a sequence in the latent space directly without maximizing a likelihood. This in turn is being used to infer the centroid for an activity in the real-time classification for actions.
+
+The authors validated this approach on the MOCAP dataset using 7 different actions (Run, Walk, Jump, Throw-Toss, Sit-Stand, Box, Dance) and achieved an average recognition rate of 72.9%.
 
 *** Sequence back-constraints
-The mapping is defined as a linear combination of
-the DTW distance between every other sequence. For every latent dimension $q$ we
-have:
+The mapping is defined as a linear combination of the /DTW/ distance between every other sequence. For every latent dimension $q$ we have:
 
               $$ g_{q}(Y_s) = \sum_{m=1}^{S} a_{mq} k(Y_s,Y_m) $$
 
-where the similarity measure is $k(Y_s, Y_m) = \gamma e^{DTW(Y_s, Y_m)}$. This measure can be interpreted as a sequence alignment kernel. The
+where the similarity measure is $k(Y_s, Y_m) = \gamma e^{\text{DTW}(Y_s, Y_m)}$. This measure can be interpreted as a sequence alignment kernel. The
 measure is to be preserved in the latent spaces.
 
        $$ g_q(Y_s) = \mu_{sq} = \frac{1}{L_s} \sum_{n \in J_s} x_{nq} $$
 
 Therefore we need to perform a constrained optimization for the /GP-LVM/.
 
-\missingfigure{example of discriminative and back-constrained latent space}
 
 *** Discriminative GP-LVM
-Furthermore, by applying the Discriminative GP-LVM we ensure that poses of different activities are separated from each other and poses from similar activities are located closer together. This ensures that the centroid of an activity is more informative and thus discriminative. The Discriminative GP-LVM works by also maximizing the between class variance and minimizing the in-class similarity ebib:urtasun_discriminative_2007 \todo{expain D GP-LVM properly} 
-
-The discriminative approach is inspired by /General Discriminat Analysis/. 
+Furthermore, by applying the Discriminative GP-LVM we ensure that poses of different activities are separated from each other and poses from similar activities are located closer together. This ensures that the centroid of an activity is more informative and thus discriminative. The Discriminative GP-LVM works by minimizing the between class similarity and maximizing the innner-class variance ebib:urtasun_discriminative_2007.
 
 The two criteria for optimization are:
 
-- the vari inside a class
+- The distance between the classes
 
-$$  $$
+$$ S_b = \sum_{i = 1}^l \frac{n_i}{n} (\bm{\mu_i} - \bm{\mu}) (\bm{\mu_i} - \bm{\mu})^T $$
 
+
+where $n$ is the number of samples, $n_i$ is the number of samples for class $i$ and $l$ is the number of classes. Furthermore $\bm{\mu_i}$ is the mean of the class and $\bm{\mu}$ is the mean across all classes. 
+
+- The variance within each class
+
+$$ S_w = \frac{1}{n} \sum_{i = 1}^l \sum_{j = 1}^{n_i} \frac{n_i}{n} (\bm{x_{i,j}} - \bm{\mu_i}) (\bm{x_{i,j}} - \bm{\mu_i})^T   $$
+
+where $\bm{x_{i,j}}$ is the $j$-th sample from class $i$.
+
+The variance within each class $|S_w|$ should be minimized and the distances between the classes $|S_b|$ should be maximized. This is done by combining both condition into a sole criterion and maximizing it:
+
+$$ J(X) = tr(S_w^{-1} S_b) $$
+
+This criterion is added to the likelihood of the GP-LVM with a parameter $\lambda$ which decides how much weight the discrimination should take in the optimization. If we make the model more discriminative we could break the learning of the non-linear manifold. On the other hand if the value is small the contribution will bee to minor and we will not gain any discrimination between the classes.
 Recognition is being done by applying the mapping above to the
 new sequence and using a SVM in the latent space.
 
 *** Advantages
+This methods maps each pose from every activity inside the same latent space, which ensures that the mapping captures a non-linear manifold which is categorized by all activities. 
 Recognition can be done in real time by using the learned back constrained. The centroid in the latent space is being calculated for the whole sequence and classified by the SVM. 
 Also incomplete trajectories can be classified. When there is an activity transition the centroid will cross the decision boundary of the /SVM/ and be naturally classified to the new corresponding activity. 
 
@@ -907,48 +885,105 @@ Also one problem with the real-time recognition is that determining when exactly
 
 *** Extensions:
 **** Learn pose together with local motion to capture dynamics
-The GP-LVM learns a mapping for each pose but does not consider velocities and accelerations. If we take a pose along with its first and second moments as the high-dimensional space we allow for the temporal displacements to be also modeled. The latent space represents the poselet and the DTW kernel in the constraint captures also the motion of the activity. Due to the difficult optimization and the high complexity of the data set we could not find a good local minimum with this approach.
+The GP-LVM learns a mapping for each pose but does not consider velocities and accelerations. If we take a pose along with its first and second moments as the high-dimensional space we allow for the temporal displacements to be also modeled. The latent space will represents the pose along with the local motions and the DTW kernel in the constraint will also captures the dynamics of the activity. Due to the difficult optimization and the high complexity of the data set we could not find a good local minimum with this approach.
 **** Use mahalanobis for the DTW
 As described in section [[Dynamic Time Warping with Mahalanobis Distance]] we wanted to use a modified version of the /DTW/ for learning the sequence back-constraints. But due to our tests the mahalanobis inspired /DTW/ did not perform any better for our chosen features.
 
+** Feature extraction
+Regardless of the chosen algorithm the features used for learning will have a big impact on the performance of the model. Therefore it is imperative to extract discriminative features from the skeleton data.
+
+We get the joint positions and the angles between them in the camera frame defined by the used depth camera (.e.g Microsoft's Kinect).When extracting features we have to make sure that we have view invariant features of the skeleton. We want these data in the frame of the skeleton.
+
+One way to achieve scale invariance is to normalize all link lengths in respect to the torso link. This correct for variances of skeleton lengths in different persons. To make the pose view invariant we have to define a local skeleton frame which captures the skeletons /orientation/ in the world coordinate system.
+
+#+Caption: Sketch of the local skeleton frame inside the camera frame. The rotation matrix $\bm{R}$ and the translation vector $\bm{t}$ define the needed transformation to change from camera coordinates to the local skeleton coordinates
+#+Label: fig:skeleton-frame
+#+ATTR_LATEX: :width 10cm
+[[file:figures/skeleton-frame.eps]]
+
+Another way to achieve view invariance is to not consider the 3D points of the joints all together but instead to take only relative features. These can be, for example the angles or distances between two adjacent joints. An interesting approach is used in ebib:theodorakopoulos_pose-based_2014, which is to define a polar coordinate frame for each joint and use only two angles, which define the orientation of the joint in a polar coordinate frame, as features. This way we also reduce the observation space. 
+
+As discussed in [[Related Work]] many methods also make the extracted temporal features (e.g. Eigenjoints). However since we want to include the dynamics in our model we do not extract such features explicitly.
+
+We selected a 3D point cloud of the joints in the skeletons own coordinate frame as features. The reason for this is that we believe the 3D point cloud to be more linear than relative features, which in turn will help when optimizing the model. Figure [[fig:skeleton-frame]] shows this approach. We chose the two vectors -- torso to right hip and torso to left hip -- to define our local coordinate system. By normalizing and computing the cross product we have also the third vector which points to the walking direction of the skeleton. 
+
+
+** Implementation
+As there was no publicly available source code and we wanted to integrate the code with ROS we choose to implement this method in Python. We used the /GPy/ library from the ... Sheffield University \todo{cite GPy}. 
+
+To implement the Discriminative GP-LVM constraints by porting the code from Prof. Urtasun's matlab code to Python and integrating it with /GPy/. 
+
+Doing so we encountered several problems with the current numpy and scipy libraries dealing with sparse matrices. As of now there is no way to perform a fast multiplication of sparse matrices and of block-diagonal matrices. The only solution to this is by manually implementing an algorithm. But doing so one looses all the advantages of the BLAS and LAPACK integration of numpy.
+
+To enforce the sequence back-constraints we implemented a constrained optimization by adding Lagrangians to the objective function. This way the weight parameters for each sequence alignment kernel were learned. 
+** Dynamic time warping with mahalanobis distance 
+The Dynamic Time Warping algorithm is a prominent and very effective choice for computing similarity between two sequences. Using this measure as a sequence alignment kernel the methods aligns similar sequences closer to each other. The effectiveness of the recognition is determined by the accuracy of this alignment kernel.
+ 
+The issue with this approach, in the context of activity recognition, is how to define the distance metric between two poses. This metric is crucial for the /DTW/ to find an optimal path.
+Popular choices for the distance function is the euclidean distance, if 3D points are used as features and which we used in our implementation, and the angular distance for angles. The problem with these two distances is that they are just the sum of the individual feature differences. As the dimensionality grows this metric becomes less informative. 
+
+In the case of human poses we have a certain notion of which poses are similar and which are far apart. Maybe this is due to the fact that we inherently know -- or classify -- to which activity the pose corresponds to and have therefore some notion of closeness with respect to an activity which cannot be approximated with the euclidean distance. Poses from different activities will most likely also seem to be more or less similar depending on how similar the actions are.
+
+One idea to transfer this knowledge is by using the Mahalanobis distance instead of the euclidean distance when computing the similarity of two pose sequences. By computing the covariance for each activity we have some notion of the variance across all feature dimensions for a specific class. This way we can capture -- to some extent -- the variability for each class. Now we can compute a similarity measure with a new sequence $x_new$ for each class and each sample of this class. Thus we can define a notion of measure between a class and a new sample by:
+
+$$ s(j, \bm{x_{new}}) = \frac{1}{|C_j|} \sum_{\bm{x} \in C_j} \frac{\text{DTW}_{\text{mahalanobis}(\bm{\Sigma_j^{-1}})}(\bm{x}, \bm{x_{new}})}
+{min(|\bm{x_i}|, |\bm{x_{new}|)}} $$
+
+where $C_j$ is the set containing all class sequences and $|C_j|$ is the number of sequences in class $j$. The normalization factor $min(|\bm{x_i}|, |\bm{x_new}|)$ makes sure that the minimum cost computed by the $\text{DTW}$ is proportional to the smallest sequence.
+
+This way the distance error is distributed by a way defined by the variance across each dimension.
+
+A similar idea was also proposed in the context of handwritten signature verification in ebib:qiao_learning_2011, which uses just one covariance matrix.
+The covariance matrix is determined such that, just like in the case of Discriminant GP-LVM, it maximizes the variability between classes and minimizes the difference for samples in the same class. 
+In contrast to our approach the overall covariance matrix may define a more meaningful and discriminative measure but it is also more difficult to update when performing online learning and when learning a new class (novelty detection).
+
 *** Implementation
-As there was no publicly available source code we choose to re-implement this method. As it was planned to implement a /ROS (Robot Operating System)/ module for online activity recognition we choose the Python platform which can be easily integrate with /ROS/. We used the /GPy/ library from the ... Sheffield University \todo{cite GPy}. We ported the Discriminative GP-LVM constraints code from Prof. Urtasun's matlab code and integrated it with /GPy/. To implement the sequence back-constraints we implemented a constrained optimization by adding Lagrangians to the objective function.
+We wrote a simple version of the Dynamic Time Warping in Python using dynamic programming and following the recursive definition in chapter [[Dynamic Time Warping]]. As the variance for some feature dimensions can be zero the constructed covariance matrix does not have full rank and thus cannot be inverted. We mitigate this problem with an approximation of the inverse by computing the pseudoinverse.
+
 
 
 ** Evaluation
-We believe that the many constraints on the optimization and the highly different data is very hard to optimize. For this reason we choose to implement a new model basing on motion flow fields.
+Our tests on the Cornell Daily Living Activity data were unsuccessful as the optimization failed to find a discriminative latent space.
+We believe that the many constraints on the optimization and the highly variant data is very hard to optimize. 
 
+Another reason for this could be that the activities in the Cornell data set are more complex. The MOCAP data represents action which could be described more easily with a non-linear manifold. In contrast most daily living activities consist of several and, also in their inherent structure, different actions. The /DTW/ measure is therefore not suitable to capture the similarity between two complex activities.
+
+It can be argued that the performance of the /GP-LVM/ is strongly dependent on the initialization. This was stated also in the original ebib:paperlawrence_gaussian_2003. It seems that the objective function is highly-nonlinear and it is very likely that the optimization will find a local minimum in the vicinity of the starting position.
+
+For these reasons we choose to implement a new model based on motion flow fields which will be learn for each activity separately.
 
 * Approach: GP-Latent Motion Flow 
-It can be argued that the mean poses computed in the /bag-of-features/ method capture the most probable motion tendencies of an activity. The good performance of the algorithm can be attributed to this fact.
+It can be argued that the mean poses computed in the /bag-of-features/ method capture the most probable pose and motion tendencies of an activity. The good performance of the algorithm can be attributed to this fact. This can be explained by the local motion descriptor and the structural descriptor which are good representations for the current pose.  We want to find an algorithm which performs dimensionality reduction, like in the case of the /Discriminative sequence back-constrained GP-LVM/ but also captures the motion tendencies for each activity class.
 
-Many models which use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the problem remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to use GPRF as classification can be done using second order dynamics which should give better results. Going further the activity itself is characterized by the first and second moments of the trajectory function. By explicitly modeling the velocity of the trajectory we can take changes in the joint movement into account.
-*** The Gaussian Process Regression Flow
+Many models use GP-LVM to reduce the high dimensional space into fewer dimension. These approaches make the problem more feasible but the issue remains how to do classification for time-series data. Human motions are mostly characterized by the dynamics of the model (temporal dimension). So we have to compare trajectories in the latent space. One idea is to learn a /Gaussian Process Dynamical Model/ for each activity. This way we will have a function of the trajectory. This method is very powerful but using it will very likely not give good results in our case, due to the fact that more complex activities do not necessarily resemble the same trajectory. If we take the activity "cooking" as an example, there is no main trajectory that is being followed. Moreover this activity is defined by its local motion tendencies and sub-actions. Also a trajectory based approach will not be able to model cyclic action inside an activity which can be repeated an undetermined number of times.
+
+One idea to solve these problems is to learn a motion flow field inside the latent space. This can be with a similar method called /Gaussian Process Regression Flow (GPRF)/ proposed in ebib:kim_gaussian_2011. The classification can be done using first and second order dynamics which should give better results. Going further the activity itself is characterized by the first and second moments of the trajectory function. By explicitly modeling the velocity of the trajectory we can take changes in the joint movement into account.
+
+** Gaussian Process Regression Flow
  ebib:kim_Gaussian_2011 can be used to model the trajectories in the latent space.
 
 
 
 \todo{explain GPRF}
 
-*** GP-Latent Motion Flow
+** GP-Latent Motion Flow
 
 The GP-LMF method is inspired by this model. The difference being that in the case of activity recognition we do not know the starting position and also the trajectories can have significantly different lengths. For this reason it is very difficult to normalize with respect to the time dimension.
 Nevertheless, resulting from the properties of Gaussian Process regression, we have also a dense mean flow field and dense variances. This allows us perform efficient and robust online recognition in the latent space.
 
-This model is attractive for two reasons. First real-time classification of incomplete trajectories is possible. Incomplete not only in the sense of the first part of an activity but any interval of an activity, which could be also somewhere in the middle of the sequence. Second it is possible to do online learning by simply adding the new class as a new flow field to the pool of GPs. It is very difficult to adjust the other models for online learning, because of the problem that we can get stuck in a local minimum when optimizing the parameters of the GP.
+This model is attractive for two reasons. First real-time classification of incomplete trajectories is possible. Incomplete not only in the sense of the first part of an activity but any interval of an activity, which could be also somewhere in the middle of the sequence. Second it is possible to do online learning by simply adding the new class as a new flow field to the pool of GP regressions. It is very difficult to adjust other models, which rely on the mapping between latent space to observation space, for online learning, because of the problem that we can get stuck in a local minimum when optimizing the parameters of the GP-LVM.
 
-The idea is to learn a motion field in the latent space for each activity. This can be achieved by learning the velocity function of the latent point just like in the GPRF model presented above. With the difference that we do not use the spatio-temporal domain but spatial domain of the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. On top of that we also want to recognize an activity which is being interrupted by another activity, so we can't fix the lengths of the trajectories. 
+The idea is to learn a motion field in the latent space for each activity. This can be achieved by learning the velocity function of the latent point just like in the GPRF model presented above. With the difference that we do not use the spatio-temporal domain but only the spatial domain for the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. On top of that we also want to recognize an activity which is being interrupted by another activity, so we cannot fix the lengths of the trajectories. 
 
-\missingfigure{example of several flow fields inside latent space}
 
 Each activity has its own flow field. Recognition and prediction is done by calculating the energy of the currently moving point with each different field. The field with the minimum energy represents the most probable activity as the point follows more closely its "current" of motion.
 
 Variances in the speed of performing an activity can be modeled by giving the point in the latent space a mass which can be adjusted in real time.
 When a point has greater mass then it needs more energy to be propagated through the flow field (the overall activity is slower) and vice versa.
 
-This way we have two indicators for recognizing unobserved data. The first one is the variance of the back-constraint mapping. If it is high we know that current sample is far apart from the observed ones. The second is the variance of the /Gaussian Process Regression/. If this value is high we know that we didn't see any sample in the latent space with the current motion. Therefore, with this two indicators, we have a notion of how new a sample and its current motion are.
+As we use the /GP-LVM/ and a /GP regression/ way we have two indicators for recognizing unobserved data. The first one is the variance of the back-constraint mapping. If it is high we know that current sample is far apart from the observed ones. The second is the variance of the /Gaussian Process Regression/. If this value is high we know that we didn't see any sample in the latent space with the current motion. Therefore, with this two indicators, we have a notion of how new a sample and its current motion are.
 
-An advantage of this method is that activities with repetitive motions, such as walking or running, can be learned without using periodic kernels or without resorting to model them explicitly. Repetitive motions can be seen as just multiple samples of the same motion which define the flow field.
+Another advantage of this method is that activities with repetitive motions, such as walking or running, can be learned without using periodic kernels or without resorting to model them explicitly. Repetitive motions can be seen as just multiple samples of the same motion which define the flow field.
 
 #+begin_src dot :file figures/gplmf-approach.png
 digraph pipeline {
@@ -983,96 +1018,128 @@ digraph pipeline {
 }
 #+end_src
 
+#+Caption: Illustration of the "Gaussian Process - Latent Motion Flow Field" approach.
+#+Label: fig:gplmf-approach
 #+RESULTS:
 [[file:figures/gplmf-approach.png]]
 
-*** Learning the flow field
+Figure [[fig:gplmf-approach]] illustrates this approach.
+- For every activity class the latent space representation is learned. 
+- Then we compute the numerical derivative of the sequence inside latent space. 
+- 
 
-The initial idea was to learn a general dimensionality reduction for a high number of varying activities and work with only one latent space. The problem is that the it is very difficult to learn a smooth mapping in the latent space. This is described more deeply in ebib:urtasun_modeling_2007-1 where the authors try to incorporate the optimization criterion of Locally Linear Embedding together with the a back-constrained Gaussian Process Dynamical Model. As this approach needs also prior knowledge and is very complex we decided to learn each activity separately. Future work should deal with the possibilities of learning a unified latent space at it will allow us to learn different flow fields in the same space and we will not have to perform a heuristic normalization.
+
+** Requirement: Smooth latent space
+It is imperative for the /Gaussian Process/ regression that the latent space is smooth. It this is not the case than different poses which are located nearby can have completely different gradients.  
+As the /GP-LVM/ preserves distances rather than locality, it is very likely that there will be no smooth mapping in the latent space. One approach to constrain the latent space to be smooth is using the back-constraints. 
+
+** Learning the flow field
+
+The initial idea was to learn a general dimensionality reduction for a high number of varying activities and work with only one latent space. But as we saw in Chapter [[Approach: Discriminative Sequence Back-Constrained GP-LVM]] such an approach is very difficult to realize, because of the difficult optimization task. Another problem is that the it is very difficult to learn a smooth mapping in the latent space. This is described more deeply in ebib:urtasun_modeling_2007-1 where the authors try to incorporate the optimization criterion of /Locally Linear Embedding/ together with the a back-constrained /Gaussian Process Dynamical Model/. As this approach needs also prior knowledge and is very complex we decided to learn each activity separately. Future work should deal with the possibilities of learning a unified latent space at it will allow us to learn different flow fields in the same space and we will not have to perform a heuristic normalization of the different flow fields.
  
-We deploy GP for learning the flow field which gives us several advantages.
+One problem we encounter by learning the motion flow field from several samples is complexity of the /Gaussian Process/. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take /IVM/ as the sparse GP model both approaches can be seen as equivalent as the /IVM/ will automatically take the most informative samples.
 
-One problem we encounter by learning the motion flow field from several samples is complexity of the Gaussian Process. There are two solutions for this. The first one is to use a sparse GP model. The second one is to sample points from all samples and use only those that are most suitable for the regression. If we take IVM as the sparse GP model both approaches can be seen as equivalent as the IVM will automatically take the most informative samples.
-
-\missingfigure{latent space (several samples of one activity) with flow field}
-**** Effects of the hyperparameters
+*** Effects of the hyperparameters
 
 Changing the /lengthscale/ defines how much each point is contributing to the regression process. It can be interpreted as a smoothness factor which governs how strong the interpolation of the flow field is performed on the latent points.
 
 Changing the signal variance controls how much 
 
 
-\missingfigure{effect of hyperparameters on the resulting flow field}
 
 
 
-*** Interpretation
-The proposed model has a natural interpretation. A point represents a pose in latent space and an activity is a trajectory in time inside the same space. With the flow field we learn the motion tendencies for each pose. When performing recognition we let the current point traverse each separate flow and compute the needed energy. If we consider that the point has a mass we can model the speed at which activities are being done. This way we can recognize when a point leaves an activity, which represents a /motion current/, and passes over to some other activity.
+** Interpretation
+The proposed model has a natural interpretation. A point represents a pose in latent space and an activity is a trajectory in time inside the same space. With the flow field we learn the motion tendencies for each pose. When performing recognition we let the current point traverse each separate flow and compute the needed energy. If we consider that the point has a mass we can model the speed at which activities are being performed. This way we can recognize when a point leaves an activity, which represents a /motion current/, and passes over to some other activity.
 
-The model captures the changes in velocity which is comparable to the motion history images...
+The model captures the changes in velocity which is comparable to the motion history images discussed in Chapter [[Related Work]].
+
+** Recognition
 
 
-*** Advantages
-**** Recognition
-The current activity is being mapped into the latent space. Through the learned back-constrained. The recognition is being performed solely in the latent space. By propagating the current position by each flow field we can calculate the next possible pose. By comparing the similarity considering the variances we have a measure of how well the current activity resamples each flow field e.g. learned activity.
+The first approach for computing the energy for a new sequence and each flow field was to compute the dot product of the actual gradient with the vector from the flow field at the latent point mapped from the back-constrained mapping. This quantity is then added to the weight of the particle.  
 
-**** Prediction
-If we have detected the activity predicting is simply a matter of propagating the pose through the flow field by taking the mean of the GP.
+Inspired by the particle filter method our recognition approach was to have a particle for the latent space of each activity. In every time step the particle is being updated with the above described probability. Then all particles are normalized. This way we ensure that the particle represents the probability that the current action is being performed. If it respects the flow field it will accumulate more weight and due to the normalization the other particles will become smaller. 
 
-**** Online learning
+** Advantages
+*** Recognition
+The current activity is being mapped into the latent space. Through the learned back-constrained. The recognition is being performed solely in the latent space. By propagating the current position by each flow field we can calculate the next possible pose. By comparing the similarity considering the variances we have a measure of how well the current activity resembles each flow field e.g. learned activity. By doing this for each separate activity class we can maintain a probability how likely it is that the current motion tendencies resemble each learned class. 
 
-**** Natural interpretation
-**** Novelty detection (anomaly detection)
+*** Prediction
+If we have detected the activity predicting is simply a matter of propagating the pose through the flow field by taking the mean of the GP. This way short-term predictions are possible. Also the prediction is updated every time the point changes its position in the latent space. 
+
+*** Multiple Hypothesis Prediction
+Since we have a GP representing our flow field we can predict future point positions with the mean value. Moreover also having informative variances we can sample several possible trajectories. This can be accomplished using an particle filter. Hence we can have multi-hypothesis predictions along with their probabilities.
+
+*** Online learning
+
+*** Active learning
+
+
+*** Natural interpretation
+*** Novelty detection (anomaly detection)
 In ebib:kim_Gaussian_2011 the authors present the ability of the GPRF model for anomaly detection. 
 This approach is also suitable for finding new classes as the above energy value can be used to recognize novel activities. The reasoning is that if we cannot find an flow field with a small energy the activity has to be unobserved.
+*** In comparison to the GPDM it can model cyclic activities
 
-**** Active learning
-**** Multiple Hypothesis Prediction
-Since we have a GP representing our flow field we can predict future point positions with the mean value. Moreover also having informative variances we can sample several possible trajectories. This can be accomplished using an particle filter. Hence we can have multi-hypothesis predictions along with their probabilities.
-**** In comparison to the GPDM it can model cyclic activities
-*** Problems
-**** Dimensionality reduction
+** Implementation
+We used non-sparse /GP-LVM/ with a back-constrained mapping to learn each class of activities. The back-constrained has two purposes. The first is that we need a backward mapping to map new poses to the latent space. The second is that the latent space must be smooth. 
+
+** Problems
+*** Dimensionality reduction
 Performing a non-linear dimensionality reduction is no easy task. Testing was done with only two dimensions as it easier to visualize the latent space and the resulting flow fields.
 A latent space with higher dimension will naturally make the reduction more robust and the field will have a more natural interpretation....
 
 
-**** Stable class mean flow field
+*** Stable class mean flow field
 When learning a stable flow field from several samples the field can degenerate with the inclusion of strong variable paths. Therefore it is important to ensure that the algorithm learns stable paths. This can be achieved by sampling uniform random sampling from all samples of the same activity.
 
 \todo{active learning - problem ??}
 
-*** Recognition
-Inspired by the particle filter method our recognition approach was to have a particle for the latent space of each activity. In every time step the particle is being updated with the above described probability. Then all particles are normalized. This way we ensure that the particle represents the probability that the current action is being performed. If it respects the flow field it will accumulate more weight and due to the normalization the other particles will become smaller. 
+** Evaluation
 
-*** Evaluation
-Unfortunately we were not able to perform an appropriate dimensionality reduction. 
+At first we concentrated our efforts for learning with the MOCAP data. In theory the data collected from the kinect should be equivalent. One difference is the high noise in the pose estimation, but due to the fact that the GP-LVM preserves distances rather than locality this problem is mitigated to a certain degree. For most activities, such as walking, running and jumping it was possible to learn a representative flow field. For more complex actions the optimization could not find a smooth mapping. This could also be due to the used /RBF/ kernel for the backward mapping.
+
+Unfortunately we were not able to perform an appropriate dimensionality reduction.
+
+This several reasons:
+- Due to the fact that we want to also learn a backward mapping (observed space to latent space) we have to initialize the latent space with this mapping. For this reason we could not define a more appropriate initialization such as /PCA/ or /LLE/.
+
+- The Cornell dataset contains many activities with many samples. Using the /IVM/ variant helps in some respect to circumvent this problem but also introduces an approximation. 
+
 ebib:urtasun_modeling_2007-1
 ebib:bitzer_kick-starting_2011
 ebib:urtasun_3d_2006
 
-The author in Exploring model selection techniques for
-nonlinear dimensionality reduction
-also suggest to use ISOMAP or LLE to initialize the GPLVM and argues that direct optimization of the GP-LVM is very difficult.
+The author in Exploring model selection techniques for nonlinear dimensionality reduction also suggest to use ISOMAP or LLE to initialize the GPLVM and argues that direct optimization of the GP-LVM is very difficult.
 
 
 Probabilistic Feature Extraction fromMultivariate Time Series using Spatio-TemporalConstraints
 
 * Conclusions and Outlook
 ** Summary
+In this thesis we covered the issue of performing online activity recognition from skeletal features. We began by re-implementing an existing method, which works by extracting representative poses and performs a histogram pooling over the quantized pose sequence.
+** Lessons learned
 *** Dimensionality reduction for all activities is very difficult (also with extra constraints)
 *** Dynamics is a good measure for classification of human activities
-*** Contributions
-**** Advantages and Disadvantages of dimensionality reduction with GP-LVM for human motion in the context of activity recognition
-**** Implementation of the Discriminative GP-LVM with python 
+** Contributions
+*** Implementation of 
+*** Advantages and Disadvantages of dimensionality reduction with GP-LVM for human motion in the context of activity recognition
+*** Implementation of the Discriminative GP-LVM with python 
 We ported the matlab code provided by Prof. Urtasun into python and integrated it with the GPy library
-**** Implementation of the Sequence Back-constraints 
+*** Implementation of the Sequence Back-constraints 
 We used Lagrangians to implement a constrained optimization of the likelihood function
-**** Improvement of the DTW measure with the mahalanobis distance ????????
-**** A novel approach for activity recognition (prediction??)
-**** Introduction of an energy minimization approach for online recognition of complex activities
+*** Improvement of the DTW measure with the mahalanobis distance
+*** A novel approach for activity recognition
+With the /GP-LMF/ we presented a novel method for online recognition of complex activities. 
+*** Introduction of an energy minimization approach for online recognition of complex activities
 ** Outlook
-*** Energy minimization evaluation
-*** Semi-supervised activity learning by automatic  segmentation of activities !!!
+*** Implementation of the GP-LMF using spatio-temporal GP-LVM
+As described earlier the GP-LMF approach failed, due to the fact that the optimization of the GP-LVM with back-constrained did not result in a smooth latent space. One possibility to solve this problem is by implementing the /Spatio-Temporal GP-LVM/ as described in \todo{cite spatio temporal GP-LVM}.  
+
+
+*** Semi-supervised activity learning by automatic segmentation of activities
+If the problem of a smooth latent space can be solved the /GP-LMF/ method can be used to perform an automatic segmentation of observed and unobserved activities. As discussed earlier, since we have two good indicators of the uncertainty of both, the poses we see and the motion tendencies, we can segment a time interval into "known" and "unknown" activities. In conjunction with online learning, this will greatly reduce the time this method needs to learn appropriate flow fields for a number of classes. 
 
 
 
