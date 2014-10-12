@@ -160,6 +160,8 @@ class DatasetPerson:
         data[:, i] = scipy.ndimage.gaussian_filter1d(data[:, i], sigma)
     return convert_to_features(data)
 
+  def get_raw_data(self):
+    return self.data[:, data_set_indices]
 
 
 

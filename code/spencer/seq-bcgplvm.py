@@ -146,11 +146,11 @@ class SeqBCGPLVM(SparseGPLVM):
 
         super(SeqBCGPLVM, self).optimize(optimizer, start, **kwargs)
 
-    def log_prior(self):
+    def DDlog_prior(self):
         return (1.0/self.sigma**2) * self.prior.lnpdf(self.X) 
         
     
-    def _log_prior_gradients(self):
+    def DD_log_prior_gradients(self):
         return (1.0/self.sigma**2) * np.hstack((self.prior.lnpdf_grad(self.X), 
                                                 np.zeros(self._get_params().size - self.X.size))) 
             

@@ -6,7 +6,7 @@ import GPy
 
 #def gp_regression():
     
-X = np.random.uniform(-3.,3.,(20,1))
+X = np.random.uniform(-4.,4.,(20,1))
 Y = np.sin(X) + np.random.randn(20,1)*0.05
 kernel = GPy.kern.rbf(input_dim=1, variance=1., lengthscale=1.)
 
@@ -14,10 +14,9 @@ m = GPy.models.GPRegression(X,Y,kernel)
 
 m.plot()
     
-m.optimize()
+#m.optimize()
 
-
-m.plot(plot_raw=True)
+#m.plot(plot_raw=True)
 
 def gaussian():
     import matplotlib.pyplot as plt

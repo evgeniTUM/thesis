@@ -116,7 +116,7 @@ def plot_flow_field(f, model, index=0):
 
 
     if dimensions == 2:
-        plot(model);
+        plot(model, plot_classes=False);
         quiver(x[0], x[1], vx[0], vx[1], color='y')
     else:
         if dimensions == 3:
@@ -132,6 +132,7 @@ def plot_flow_field(f, model, index=0):
                         length=0.1, color='y')
 
     plt.show()
+    return plt
     
 
 def get_test_data():
@@ -150,7 +151,7 @@ def test(m, l_scale=0.3, variance=0.00000001):
     x, y = calc_y(m.X)
     f = learn_flows(x, y, l_scale=l_scale, variance=variance)
 
-    plot_flow_field(f, m)
+    return plot_flow_field(f, m)
 
     
 _data_ = None
@@ -220,8 +221,8 @@ def get_human_activity_data():
 
 
 def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2, X=None):
-    #data, seq_index, class_index = get_mocap_data()
-    data, seq_index, class_index = get_human_activity_data()
+    data, seq_index, class_index = get_mocap_data()
+    #data, seq_index, class_index = get_human_activity_data()
     # data, seq_index, class_index = get_test_data()
 
     back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)
@@ -250,11 +251,14 @@ def seq_index2labels(seq_index):
 
 
 
-def plot(m, visual=False):
+def plot(m, visual=False, plot_classes=True):
     import GPy
     global _data_
 
-    ax = m.plot_latent(seq_index2labels(m.seq_index))
+    if plot_classes:
+        ax = m.plot_latent(seq_index2labels(m.seq_index))
+    else:
+        ax = m.plot_latent()
 
     if visual:
         y = m.likelihood.Y[0, :]
@@ -262,6 +266,8 @@ def plot(m, visual=False):
         lvm_visualizer = GPy.util.visualize.lvm(m.X[0, :].copy(), m, data_show, ax)
         raw_input('Press enter to finish')
         lvm_visualizer.close()
+
+    return ax
 
 
 def plot3d(m):

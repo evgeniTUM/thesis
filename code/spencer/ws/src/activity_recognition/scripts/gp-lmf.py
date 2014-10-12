@@ -220,8 +220,8 @@ def get_human_activity_data():
 
 
 def createModel(sigma=0.5, init='PCA', lengthscale=10.0, dimensions=2, X=None):
-    #data, seq_index, class_index = get_mocap_data()
-    data, seq_index, class_index = get_human_activity_data()
+    data, seq_index, class_index = get_mocap_data()
+    #data, seq_index, class_index = get_human_activity_data()
     # data, seq_index, class_index = get_test_data()
 
     back_kernel=GPy.kern.rbf(data.shape[1], lengthscale=lengthscale)

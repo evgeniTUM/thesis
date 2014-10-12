@@ -6,7 +6,7 @@ from utils import dtw
 from dataset import DatasetPerson
 
 
-sparsity = 1
+sparsity = 10
 
 def get_mocap_data(subject=35 , motion=01):
     data = []
@@ -98,7 +98,7 @@ def test_adl():
                 classes[label] = {'number' : class_counter, 'samples':[]}
 
             person[personId].load_activity(activity)
-            classes[label]['samples'].append(person[personId].get_processed_data())
+            classes[label]['samples'].append(person[personId].get_features())
         
         
     for label in classes.keys():
@@ -119,7 +119,7 @@ def test_adl():
             continue
 
         testPerson.load_activity(testActivity)
-        testSample = testPerson.get_processed_data()
+        testSample = testPerson.get_features()
         
         ground_truth.append(classes[testLabel]['number'])
 
@@ -139,8 +139,8 @@ def test_adl():
                 mahalanobis_distance = lambda x,y: scipy.spatial.distance.mahalanobis(x,y,cl['inverse_covariance'])
 
 
-                dtw_dist = dtw(testPerson.get_processed_data()[::sparsity], sample[::sparsity])/normalizer
-                dtw_mah_dist = dtw(testPerson.get_processed_data()[::sparsity], sample[::sparsity], dist=mahalanobis_distance)/normalizer
+                dtw_dist = dtw(testSample[::sparsity], sample[::sparsity])/normalizer
+                dtw_mah_dist = dtw(testSample[::sparsity], sample[::sparsity], dist=mahalanobis_distance)/normalizer
 
 
 
@@ -165,10 +165,8 @@ def test_adl():
 
     prediction_mah = map(lambda x: m[x], prediction_mah)
     prediction = map(lambda x: m[x], prediction)
-    prediction_mah_min = map(lambda x: m[x], prediction_mah_min)
-    prediction_min = map(lambda x: m[x], prediction_min)
 
 
-    return ground_truth, prediction_mah, prediction, prediction_mah_min, prediction_min
+    return ground_truth, prediction_mah, prediction
  
 
