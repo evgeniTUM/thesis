@@ -14,5 +14,14 @@
 \end{center}
 \vspace{1cm}
 
-German Abstract
+\begin{otherlanguage}{ngerman}
+Durch den Einzug von neuartigen RGBD-Sensoren und deren Einsatz in Robotersystemen, ist es heutzutage m\"oglich Bild-zu-Bild Extraktion und Verfolgung von
+k\"orperlichen Posen innerhalb der Umgebung von Roboter durchzuf\"uhren. Durch die Behandlung von Sequenzen solcher Posen kann man menschliche Aktivit\"aten lernen und erkennen.
 
+Der Gegenstand dieser Arbeit ist es, eine praktische Methode f\"ur inkrementelle Aktivit\"atserkennung zu entwickeln. Drei verschieden Ans\"atze werden unternommen. Der erste ist eine Implementierung eines existierendes Modell welches repr\"asentative Posen von einer Aktivit\"at extrahiert und die \textit{Support Vector Machine} nutzt um echtzeit Aktivit\"atserkennung durch die Klassifizierung von der Distribution dieser Posen zu machen.
+Mehrere Erweiterungen werden vorgeschlagen, wie z.B. die Klassifizierung durch \"Ahnlichkeitsmasse f\"ur Sequenzen. Eine Integration in das \textit{Robot Operating System} wird entwickelt. Das resultiert in einem Modul welches zwar f\"ahig ist echtzeit Erkennung durchzuf\"uhren, aber keine inkrementelle.
+
+Der zweite Ansatz ist es \textit{Discriminative Sequence Back-Constraint GP-LVM} zu nutzen, welches ein Modell ist um ein nicht-lineare niedrig-dimensionale Mannigfaltigkeit f\"ur die Posen zu lernen, welche die \"Ahnlichkeit der Sequenzen und die separierbare Eigenschaften der Aktivit\"atsklassen erfasst. Inkrementelle Erkennung wird durchgef\"uhrt indem die Schwerpunkte der latenten Cluster, welche zu den einzelnen Aktivit\"atssequenzen geh\"oren, klassifiziert werden. Experimente auf dem \textit{Cornell Daily Living Activity} Datensatz zeigen, dass dieses Modell, wegen des schwierigen Optimierungsproblems, nicht f\"ahig ist eine geeignete latente Repr\"asentation f\"ur alle Aktivit\"aten zu finden. 
+
+Der dritte Ansatz ist eine neue Methode, welche auf das Lernen eines dichten Flussfelds im latenten Raum jeder Klasse durch mehrere \textit{Gauss-Prozesse} basiert. Die inkrementelle Erkennung wird durchgef\"uhrt durch berechnen und akkumulieren der Wahrscheinlichkeit, dass die tats\"achlichen Bewegung der Pose zu einem Flussfeld korrespondiert. Das Problem eine glatte Abbildung in dem latenten Raum zu finden wird erl\"autert und es werden einige Alternativen vorgeschlagen um die Dimensionsreduzierung durchzu- f\"uhren.
+\end{otherlanguage}

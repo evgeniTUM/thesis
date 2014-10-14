@@ -27,7 +27,7 @@
               <y:Shape type="roundrectangle"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
-              <y:BorderInsets bottom="31" bottomF="30.9921875" left="280" leftF="280.4293608247423" right="40" rightF="39.8347454494201" top="9" topF="9.0"/>
+              <y:BorderInsets bottom="33" bottomF="32.9921875" left="283" leftF="283.4293608247423" right="37" rightF="36.71797418917413" top="9" topF="9.0"/>
             </y:GroupNode>
             <y:GroupNode>
               <y:Geometry height="50.0" width="50.0" x="269.0" y="200.0"/>
@@ -46,10 +46,10 @@
         <node id="n0::n0">
           <data key="d6">
             <y:ShapeNode>
-              <y:Geometry height="103.0" width="103.0" x="525.5" y="560.59375"/>
+              <y:Geometry height="101.0" width="100.0" x="528.5" y="560.59375"/>
               <y:Fill color="#FFFFFF" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="custom" textColor="#000000" visible="true" width="92.072265625" x="5.4638671875" y="21.5625">classify
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="custom" textColor="#000000" visible="true" width="92.072265625" x="3.9638671875" y="20.5625">classify
 representative
 pose
 distribution<y:LabelModel>
@@ -66,10 +66,10 @@ distribution<y:LabelModel>
         <node id="n0::n1">
           <data key="d6">
             <y:ShapeNode>
-              <y:Geometry height="61.0" width="66.0" x="671.11669921875" y="581.59375"/>
+              <y:Geometry height="74.0" width="80.06557377049181" x="664.0839123335041" y="574.09375"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="73.83203125" x="-3.916015625" y="14.53125">activity
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="73.83203125" x="3.116771260245855" y="21.03125">activity
 (prediction)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
@@ -209,7 +209,6 @@ sequences<y:LabelModel>
     </node>
     <node id="n4" yfiles.foldertype="group">
       <data key="d4"/>
-      <data key="d5"/>
       <data key="d6">
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
@@ -217,7 +216,7 @@ sequences<y:LabelModel>
               <y:Geometry height="109.15851546391747" width="366.5521658545425" x="240.07063917525772" y="443.3707814110824"/>
               <y:Fill color="#CAECFF84" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="366.5521658545425" x="0.0" y="0.0">Sparse coding and histogram pooling</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="366.5521658545425" x="0.0" y="0.0">Sparse coding</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
@@ -243,7 +242,7 @@ sequences<y:LabelModel>
               <y:Geometry height="43.0" width="111.0" x="255.07063917525772" y="485.99023437499994"/>
               <y:Fill color="#00CCFF" transparent="false"/>
               <y:BorderStyle hasColor="false" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="106.275390625" x="2.3623046875" y="12.515625">Nearest Neghbor<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="106.275390625" x="2.3623046875" y="12.515625000000057">Nearest Neghbor<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -262,7 +261,7 @@ sequences<y:LabelModel>
               <y:Geometry height="55.31703092783505" width="133.7391340206185" x="431.62643389577977" y="479.8317189110824"/>
               <y:Fill color="#00CCFF" transparent="false"/>
               <y:BorderStyle hasColor="false" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="114.255859375" x="9.74163732280931" y="18.674140463917524">Histogram pooling<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="114.255859375" x="9.741637322809254" y="18.67414046391758">Histogram pooling<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -360,7 +359,6 @@ sequence<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" a
       </data>
     </edge>
     <edge id="e5" source="n4" target="n1::n2">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="96.16591424110294" sy="-54.594188670991116" tx="0.0" ty="0.0">
@@ -376,7 +374,6 @@ sequence<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" a
       </data>
     </edge>
     <edge id="e6" source="n2" target="n4">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="-130.42820663861147" ty="-43.469626771906974">
@@ -392,7 +389,6 @@ sequence<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" a
       </data>
     </edge>
     <edge id="e7" source="n4" target="n0::n0">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
@@ -405,7 +401,6 @@ sequence<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" a
       </data>
     </edge>
     <edge id="n4::e0" source="n4::n0" target="n4::n1">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
