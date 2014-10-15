@@ -23,7 +23,6 @@
 #+LaTeX_HEADER: \usepackage[top=45mm, bottom=50mm]{geometry}
 #+LaTeX_HEADER: \usepackage{pdfsync}
 #+LaTeX_HEADER: \usepackage{scrpage2}
-#+LaTeX_HEADER: \usepackage{babel}
 
 #+LaTeX_HEADER: \usepackage{hyperref}
 
