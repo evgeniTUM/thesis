@@ -1,0 +1,21 @@
+<package>
+  <name>recognition_gui</name>
+  <version>0.1.0</version>
+  <description>
+  	A GUI for learning new activities.
+  </description>
+  <maintainer email="evgeni@todo.todo">evgeni</maintainer>
+
+  <license>BSD</license>
+
+  <url></url>
+  <author></author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rviz</build_depend>
+  <run_depend>rviz</run_depend>
+
+  <export>
+      <rosdoc config="${prefix}/rosdoc.yaml"/>
+  </export>
+</package>

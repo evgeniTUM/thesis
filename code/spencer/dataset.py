@@ -259,3 +259,12 @@ def read_persons(persons = [1,2,3], sigma=None):
             labels.append(class_labels[label])
 
     return samples, labels
+
+
+def get_features(self, sigma=None): 
+  data = self.data[:, data_set_indices]
+
+  if sigma is not None:
+    for i in range(data.shape[1]):
+      data[:, i] = scipy.ndimage.gaussian_filter1d(data[:, i], sigma)
+  return convert_to_features(data)

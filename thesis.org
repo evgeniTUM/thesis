@@ -417,8 +417,6 @@ This distribution is called the /predictive distribution/.
 
 The case where we want to also model noise is similar, except that we have a changed covariance matrix $K_{\text{with noise}} = K + \sigma^2 I$.
 
-We see that we have to invert the covariance matrix $K$, which is of dimensions $n \times n$. Therefore this operation has a runtime complexity of $\mathcal{O}(n) = n^3$, if we use standard methods. This is also the bottleneck of the whole algorithm and a serious drawback of Gaussian Processes.  Although there are methods which reduce this limit, there is no general way to perform this operation in $\mathcal{O}(n^2)$. 
-
 *** Learning the hyper-parameters
 A /Gaussian Process/ is a non-parametric model and is governed by the hyperparameters of the used kernel.
 In the case of a /GP/ the training phase is different than in parametric models, where the model parameters are inferred from the data.
@@ -443,8 +441,9 @@ $$  E(\bm{\theta}) = \frac{y^T K^{-1} y}{2}  + \frac{1}{2}\log(|K|) $$
 
 The first term can be interpreted as the data fit term, which tries to explain the data with the best possible covariance. The second term is a regularizer of the covariance. 
 
-
 In contrast to parametric models Gaussian processes are less prune to overfitting because of the covariance regularizer term.
+
+We see that we have to invert the covariance matrix $K$, which is of dimensions $n \times n$. Therefore this operation has a runtime complexity of $\mathcal{O}(n) = n^3$, if we use standard methods. This is also the bottleneck of the whole algorithm and a serious drawback of Gaussian Processes.  Although there are methods which reduce this limit, there is no general way to perform this operation in $\mathcal{O}(n^2)$. 
 
 #+Caption: Gaussian Process Regression of the sinus function. Points were sampled with additional noise (5%). The regression was done with a RBF kernel function with length scale 1.0 and variance 1.0
 #+Label: fig:gp-1-1
@@ -488,7 +487,7 @@ Figure [[fig:gp-opt]] shows the mean and the confidence after the optimization.
      Because of the fact the a /Gaussian Process/ has to remember all sample points the memory increases proportionally to the sample size $n$. 
 
 - high computational complexity ::
-     A run-time complexity of $\mathcal{O}(n^3)$ is a serious drawback, as it is not practical to use /Gaussian Process/ with data which has many samples. 
+     A run-time complexity of $\mathcal{O}(n^3)$ for the training is a serious drawback, as it is not practical to use /Gaussian Process/ with data which has many samples. 
 
 - non-convex optimization of the hyper-parameters ::
      The optimization of the hyperparameters is difficult, and it is likely that it will not find the optimum solution. This means that in many cases one has to set these hyperparameters by hand or use heuristics to be able to find good starting values.
@@ -1078,7 +1077,7 @@ The authors also show a practical application of this method for real-time class
 
 ** Gaussian Process - Latent Motion Flow
 
-The /Gaussian Process - Latent Motion Flow/ is a novel method and is inspired by the /GPRF/ described in the earlier section. The difference is that we do not use the spatio-temporal domain but only the spatial domain for the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. Therefore it is very difficult to normalize with respect to the time dimension. On top of that we also want to recognize an activity which is being interrupted by another one, so we cannot fix the lengths of the trajectories. 
+The /Gaussian Process - Latent Motion Flow (GP-LMF)/ is a novel method and is inspired by the /GPRF/ described in the earlier section. The difference is that we do not use the spatio-temporal domain but only the spatial domain for the latent space. The reason being that we do not have starting and ending positions for each activity and also the lengths can be variable. Therefore it is very difficult to normalize with respect to the time dimension. On top of that we also want to recognize an activity which is being interrupted by another one, so we cannot fix the lengths of the trajectories. 
 Nevertheless, resulting from the properties of /Gaussian Process Regression/, we can get a dense mean flow field and dense variances. This will allow us perform efficient and robust online recognition in the latent space.
 
 
@@ -1143,7 +1142,7 @@ The proposed model has a natural interpretation. A point represents a pose in la
                 The current activity is being mapped into the latent space, through the learned back-constraints. The recognition is being performed solely in the latent space. By propagating the current position by each flow field we can calculate the next possible pose. By comparing the similarity considering the variances we have a measure of how well the current activity resembles each flow field e.g. learned activity. By doing this for each separate activity class we can maintain a probability how likely it is that the current motion tendencies resemble each learned class. As this probability is update in each time step, online recognition is possible. Moreover when the activity changes the corresponding flow field will accumulate more weight. 
 
 - Prediction ::
-               If we have detected the activity predicting is simply a matter of propagating the pose through the flow field by taking the mean of the /GP/. This way short-term predictions are possible. Also the prediction is updated every time the point changes its position in the latent space. 
+               If we have detected the activity predicting is simply a matter of propagating the pose through the flow field by taking the mean of the /GP/. This way short-term predictions are possible. Also the prediction is updated every time the point changes its position in the latent space.
 
 - Multiple Hypothesis Prediction ::
      Since we have a /GP/ representing for our flow field we can predict future point positions with the mean value. Moreover also having informative variances we can sample several possible trajectories. This can be accomplished using a particle filter. Hence we can have multi-hypothesis predictions along with their probabilities.
@@ -1214,11 +1213,11 @@ Therefore we proposed a novel approach which first performs a dimensionality red
  - A novel approach for activity recognition using latent motion flow fields
  - Advantages and disadvantages of dimensionality reduction with GP-LVM in the context of activity recognition
 ** Outlook
-- Implementation of the GP-LMF using spatio-temporal GP-LVM ::
+- Implementation of the GP-Latent Motion Field using spatio-temporal GP-LVM ::
 As described earlier the GP-LMF approach failed, due to the fact that the optimization of the GP-LVM with back-constrained did not result in a smooth backward mapping. One possibility to solve this problem is by implementing the /Spatio-Temporal GP-LVM/ as described in ebib:lewandowski_probabilistic_2011. Doing so the latent space will also take the temporal order of the poses into account, resulting in a smoother backward mapping (observed space to latent space).
 
 - Adaptive GP Regression of the flow field ::
-One issue of the proposed /GP-LMF/ method, besides the difficulty to obtain a smooth mapping, is that the /RBF/ kernel is stationary. This means that the lengthscale is defined over the whole latent space. We would like this lengthscale to adapt to the curvature of the flow field. This way small and large motion tendencies can be learned. An approach that could be tested to capture this is using a non-stationary kernel. 
+One issue of the proposed /GP-LMF/ method, besides the difficulty to obtain a smooth mapping, is that the /RBF/ kernel is stationary. This means that the lengthscale is defined over the whole latent space. We would like this lengthscale to adapt to the curvature of the flow field. This way small and large motion tendencies can be learned. An approach that could be tested to capture this, is using a non-stationary kernel. 
 
 - Semi-supervised activity learning by automatic segmentation of activities ::
 If the problem of a smooth latent space can be solved the /GP-LMF/ method can be used to perform an automatic segmentation of observed and unobserved activities. As discussed earlier, since we have two good indicators of the uncertainty of both, the poses we see and the motion tendencies, we can segment a time interval into "known" and "unknown" activities. In conjunction with online learning, this will greatly reduce the time this method needs to learn appropriate flow fields for a number of classes. 
