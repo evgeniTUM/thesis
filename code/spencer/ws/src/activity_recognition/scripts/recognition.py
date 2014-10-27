@@ -1,18 +1,20 @@
 #!/usr/bin/env python  
 import roslib
 import rospy
-import math
 import tf
 import geometry_msgs.msg
-import turtlesim.srv
+from visualization_msgs.msg import MarkerArray
+
+import math
 import copy
 import pickle
 import sys
-
 import threading
+
 
 from bof_approach import *
 from dataset import label_to_class, convert_to_features
+from visualization import Pose, create_pose_message
 
 lock = threading.Lock()
 recording_lock = threading.Lock()
@@ -21,17 +23,27 @@ recognition = False
 poses = []
 record = []
 
+# samples
 samples = []
 labels = []
 
+# model
 svm = []
 kmeans = []
 
+# widget
 gui = []
 
 
 frames_per_second = 25
 
+
+### ---------------------------------------------------
+## Visualization
+
+topic = 'visualization_marker_array'
+publisher = rospy.Publisher(topic, MarkerArray)
+### --------------------------------------------------
 
 
 ## ----------------------------------------------------
@@ -134,8 +146,11 @@ joints = ['head','neck','torso','left_shoulder','left_elbow',
 from std_msgs.msg import Int32MultiArray
 
 def callback(pose):
-    global poses, record, lock, recording_lock, recognition, recording
+    global poses, record, lock, recording_lock, recognition, recording, publisher
     
+    publisher.publish(create_pose_message(Pose(pose.data)))
+
+
     with lock:
         if recognition:
             poses.append(pose.data)
@@ -148,7 +163,7 @@ def callback(pose):
 
 def save_record(label):
     global recording_lock, samples, labels, record
-    samples.append(convert_to_features(record))
+    samples.append(convert_to_features(np.array(record)))
     labels.append(label)
     record = []
 
@@ -182,7 +197,7 @@ class RecognitionGUI(QWidget):
 
         reader = rviz.YamlConfigReader()
         config = rviz.Config()
-        reader.readFile( config, "config.myviz" )
+        reader.readFile( config, "config.rviz" )
         self.frame.load( config )
 
         self.setWindowTitle( config.mapGetChild( "Title" ).getValue() )
@@ -308,7 +323,7 @@ class RecognitionGUI(QWidget):
         global lock, recognition
         with lock:
             if self.recognition_button.text() == 'Start Recognition':
-                self.recognition_button.setText('Stop Recogntion')
+                self.recognition_button.setText('Stop Recognition')
                 recognition = True
                 status("Recognition started...")
                 self.activity_label.setVisible(True)
@@ -353,7 +368,6 @@ if __name__ == '__main__':
     rospy.init_node('activity_recognition')
     rospy.Subscriber("/openni_tracker/pose", Int32MultiArray, callback)
 
-    svm, kmeans = load_model()
 
     recognize()
     # rospy.spin()
@@ -364,9 +378,8 @@ if __name__ == '__main__':
     gui.resize( 500, 500 )
     gui.show()
 
+    svm, kmeans = load_model()
+
+
     app.exec_()
 
-
-        
-        
-    

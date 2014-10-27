@@ -32,6 +32,8 @@ JOINTS_WITHOUT_ORIENTATION = ['left_hand', 'right_hand', 'left_foot', 'right_foo
 JOINTS = JOINTS_WITH_ORIENTATION + JOINTS_WITHOUT_ORIENTATION
 
 
+normalizer = 1000.0
+
 
 class Joint:
   position = None;
@@ -70,18 +72,17 @@ class Pose:
 topic = 'visualization_marker_array'
 publisher = rospy.Publisher(topic, MarkerArray)
 
-rospy.init_node('skeleton_pose_visualizer')
 
 
 def create_joint_message(joint, id=0):  
   marker = Marker()
-  marker.header.frame_id = "/skeleton"
+  marker.header.frame_id = "/openni_depth_frame"
   marker.type = marker.SPHERE
   marker.id = id
   marker.action = marker.ADD
-  marker.pose.position.x = joint.position[0]
-  marker.pose.position.y = joint.position[1]
-  marker.pose.position.z = joint.position[2]
+  marker.pose.position.x = joint.position[0]/normalizer
+  marker.pose.position.y = joint.position[1]/normalizer
+  marker.pose.position.z = joint.position[2]/normalizer
   marker.scale.x = 0.05
   marker.scale.y = 0.05
   marker.scale.z = 0.05
@@ -97,7 +98,7 @@ def create_joint_message(joint, id=0):
 def create_link_message(pose, id=0):
 
   def pos2Point(joint):
-    return Point(joint.position[0], joint.position[1], joint.position[2]);
+    return Point(joint.position[0]/normalizer, joint.position[1]/normalizer, joint.position[2]/normalizer);
 
   points = []
   for jointName1 in LINKS.keys():
@@ -108,11 +109,11 @@ def create_link_message(pose, id=0):
       points.append(pos2Point(joint2));
 
   marker = Marker()
-  marker.header.frame_id = "/skeleton"
+  marker.header.frame_id = "/openni_depth_frame"
   marker.type = marker.LINE_LIST
   marker.id = id
   marker.action = marker.ADD
-  marker.scale.x = 0.02
+  marker.scale.x = 0.025
   marker.color.a = 1.0
   marker.color.r = 1.0
   marker.points = points
@@ -144,3 +145,8 @@ def visualize_interval(data, start_frame=1, end_frame=1000):
 
 def test():
     visualize_interval(DatasetPerson().get_processed_data())
+
+
+
+if __name__ == '__main__':
+  rospy.init_node('skeleton_pose_visualizer')
