@@ -10,10 +10,11 @@ import copy
 import pickle
 import sys
 import threading
+import copy
 
 
 from bof_approach import *
-from dataset import label_to_class, convert_to_features
+from dataset import label_to_class, class_to_label, class_labels,  convert_to_features
 from visualization import Pose, create_pose_message
 
 lock = threading.Lock()
@@ -308,7 +309,7 @@ class RecognitionGUI(QWidget):
 
 
     def get_class_label(self):
-        items = ("Still", "Running", "Calling", "Eating")
+        items = copy.copy(class_labels)
   
         item, ok = QInputDialog.getItem(self, "QInputDialog.getItem()",
                 "Activity:", items, 0, False)

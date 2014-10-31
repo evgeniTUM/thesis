@@ -53,23 +53,30 @@ joint_labels.append('LF')
 joint_labels.append('RF')
 
 
-class_labels = {
-'still': 0,
-'talking on the phone': 1,
-'writing on whiteboard': 2,
-'drinking water': 3,
-'rinsing mouth with water': 4,
-'brushing teeth': 5,
-'wearing contact lenses': 6,
-'talking on couch': 7,
-'relaxing on couch': 8,
-'cooking (chopping)': 9,
-'cooking (stirring)': 10,
-'opening pill container': 11,
-'working on computer': 12,
-'random': 13}
+
+N_CLASSES=14
+class_labels = [
+'still',
+'talking on the phone',
+'writing on whiteboard',
+'drinking water',
+'rinsing mouth with water',
+'brushing teeth',
+'wearing contact lenses',
+'talking on couch',
+'relaxing on couch',
+'cooking (chopping)',
+'cooking (stirring)',
+'opening pill container',
+'working on computer',
+'random']
 
 
+
+def class_to_label(c):
+  return class_labels[c]
+
+  
 def label_to_class(l):
   for activity, label in class_labels.iteritems():
     if label == l:
@@ -247,8 +254,8 @@ def read_persons(persons = [1,2,3], sigma=None):
     labels = []
 
     for personId in range(len(person)):
-        for activity, label in person[personId].activity_label.iteritems():
-            if label == 'random':
+        for activity, cl in person[personId].activity_label.iteritems():
+            if cl == 'random':
                 continue
 
             person[personId].load_activity(activity)
@@ -256,7 +263,7 @@ def read_persons(persons = [1,2,3], sigma=None):
 
             
             samples.append(sample_features)
-            labels.append(class_labels[label])
+            labels.append(class_to_label(cl))
 
     return samples, labels
 
