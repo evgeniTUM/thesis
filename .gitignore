@@ -12,3 +12,5 @@
 /support/
 
 *.pyc
+/code/spencer/ws/build
+/code/spencer/ws/devel

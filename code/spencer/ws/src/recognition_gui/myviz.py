@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 
+import sys
+
 import rospy
 import std_srvs.srv
 import std_msgs.msg
-
-import sys
+import rviz
 
 from python_qt_binding.QtGui import *
 from python_qt_binding.QtCore import *
 
 import activity_recognition.srv
 
+
+
 def call_service(name):
-    rospy.ServiceProxy(name, std_srvs.srv.Empty)()
+    rospy.ServiceProxy('/activity_recognition/' + name, std_srvs.srv.Empty)()
 
 
-import rviz
 
 class RecognitionGUI(QWidget):
 
@@ -35,6 +37,7 @@ class RecognitionGUI(QWidget):
 
         self.setWindowTitle( config.mapGetChild( "Title" ).getValue() )
 
+        ## not working because of a bug in rviz (segmentation fault)
         # self.frame.setMenuBar( None )
         # self.frame.setStatusBar( None )
         # self.frame.setHideButtonVisibility( False )
@@ -46,13 +49,6 @@ class RecognitionGUI(QWidget):
         layout = QVBoxLayout()
         layout.addWidget( self.frame )
         
-        # thickness_slider = QSlider( Qt.Horizontal )
-        # thickness_slider.setTracking( True )
-        # thickness_slider.setMinimum( 1 )
-        # thickness_slider.setMaximum( 1000 )
-        # thickness_slider.valueChanged.connect( self.onThicknessSliderChanged )
-        # layout.addWidget( thickness_slider )
-
 
         label = QLabel("Status")
         self.status = label
@@ -120,16 +116,16 @@ class RecognitionGUI(QWidget):
 
 
     def onLoadModelClick( self ):
-        call_service('/activity_recognition/load_model')
+        call_service('load_model')
 
     def onSaveModelClick( self ):
-        call_service('/activity_recognition/save_model')
+        call_service('save_model')
 
     def onLoadSamplesClick( self ):
-        call_service('/activity_recognition/load_samples')
+        call_service('load_samples')
 
     def onSaveSamplesClick( self ):
-        call_service('/activity_recognition/save_samples')
+        call_service('save_samples')
 
 
     def get_class_label(self):
@@ -148,11 +144,11 @@ class RecognitionGUI(QWidget):
         if self.recognition_button.text() == 'Start Recognition':
             self.recognition_button.setText('Stop Recognition')
             self.activity_label.setVisible(True)
-            call_service('/activity_recognition/start_recognition')
+            call_service('start_recognition')
         else:
             self.recognition_button.setText('Start Recognition')
             self.activity_label.setVisible(False)
-            call_service('/activity_recognition/stop_recognition')
+            call_service('stop_recognition')
 
 
 
@@ -160,14 +156,14 @@ class RecognitionGUI(QWidget):
         if self.recording_button.text() == 'Start Recording':
             self.recording_button.setText('Stop Recording')
 
-            call_service('/activity_recognition/start_recording')
+            call_service('start_recording')
         else:
             self.recording_button.setText('Start Recording')
             rospy.ServiceProxy('/activity_recognition/stop_recording', activity_recognition.srv.Recording)(self.get_class_label())
                     
                 
     def onLearnModelClick(self):
-        call_service('/activity_recognition/learn_model')
+        call_service('learn_model')
 
     def status_callback(self, msg):
         self.status.setText(msg.data)

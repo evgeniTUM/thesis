@@ -3,11 +3,13 @@ import roslib
 import rospy
 import tf
 import geometry_msgs.msg
-from visualization_msgs.msg import MarkerArray
-from std_msgs.msg import String
-from std_msgs.msg import Int32
-import activity_recognition.srv
+
+import visualization_msgs.msg
+import std_msgs.msg
+import std_msgs.msg
 import std_srvs.srv
+
+import activity_recognition.srv
 
 import math
 import copy
@@ -46,7 +48,7 @@ frames_per_second = 25
 ### ---------------------------------------------------
 ## Visualization
 topic = 'visualization_marker_array'
-publisher = rospy.Publisher(topic, MarkerArray)
+publisher = rospy.Publisher(topic, visualization_msgs.msg.MarkerArray)
 ### --------------------------------------------------
 
 
@@ -153,31 +155,6 @@ def recognize ():
 def get_classes(req=False):
     return activity_recognition.srv.ClassesResponse(class_labels)
 
-# 1 -> HEAD
-# 2 -> NECK
-# 3 -> TORSO
-# 4 -> LEFT_SHOULDER
-# 5 -> LEFT_ELBOW
-# 6 -> RIGHT_SHOULDER
-# 7 -> RIGHT_ELBOW
-# 8 -> LEFT_HIP
-# 9 -> LEFT_KNEE
-# 10 -> RIGHT_HIP
-# 11 -> RIGHT_KNEE
-# 12 -> LEFT_HAND
-# 13 -> RIGHT_HAND
-# 14 -> LEFT_FOOT
-# 15 -> RIGHT_FOOT
-
-joints = ['head','neck','torso','left_shoulder','left_elbow',
-          'right_shoulder','right_elbow','left_hip','left_knee',
-          'right_hip','right_knee','left_hand', 'right_hand',
-          'left_foot','right_foot']
-
-
-
-
-from std_msgs.msg import Int32MultiArray
 
 def callback(pose):
     global poses, record, lock, recording_lock, recognition, recording, publisher
@@ -187,8 +164,7 @@ def callback(pose):
 
     with lock:
         if recognition:
-            poses.append(pose.data
-)
+            poses.append(pose.data)
     with recording_lock:
         if recording:
             record.append(pose.data)
@@ -208,7 +184,7 @@ def stop_recording(req):
         label = req.class_label
         if label >= 0:
             save_record(label)
-            status("Activity record was added to the samples")
+            status("Activity record was added to the samples with class: " + class_labels[label])
         else:
             status("Activity recording was canceled")
 
@@ -224,11 +200,11 @@ def save_record(label):
 if __name__ == '__main__':
 
     rospy.init_node('activity_recognition')
-    rospy.Subscriber("/openni_tracker/pose", Int32MultiArray, callback)
+    rospy.Subscriber("/openni_tracker/pose", std_msgs.msg.Int32MultiArray, callback)
 
     ## status and activity messages
-    status_publisher = rospy.Publisher("~status", String)
-    activity_publisher = rospy.Publisher("~activity", String)
+    status_publisher = rospy.Publisher("~status", std_msgs.msg.String)
+    activity_publisher = rospy.Publisher("~activity", std_msgs.msg.String)
 
     ## Services
     rospy.Service('~load_model', std_srvs.srv.Empty, load_model)
@@ -250,4 +226,5 @@ if __name__ == '__main__':
     load_model()
 
     recognize()
+
     rospy.spin()
