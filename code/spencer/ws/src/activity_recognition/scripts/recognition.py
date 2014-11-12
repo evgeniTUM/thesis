@@ -4,6 +4,10 @@ import rospy
 import tf
 import geometry_msgs.msg
 from visualization_msgs.msg import MarkerArray
+from std_msgs.msg import String
+from std_msgs.msg import Int32
+import activity_recognition.srv
+import std_srvs.srv
 
 import math
 import copy
@@ -32,16 +36,15 @@ labels = []
 svm = []
 kmeans = []
 
-# widget
-gui = []
 
+status_publisher = []
+activity_publisher = []
 
 frames_per_second = 25
 
 
 ### ---------------------------------------------------
 ## Visualization
-
 topic = 'visualization_marker_array'
 publisher = rospy.Publisher(topic, MarkerArray)
 ### --------------------------------------------------
@@ -49,7 +52,6 @@ publisher = rospy.Publisher(topic, MarkerArray)
 
 ## ----------------------------------------------------
 ## Get package path
-
 import rospkg
 rospack = rospkg.RosPack()
 path = rospack.get_path('activity_recognition')
@@ -57,41 +59,69 @@ path = rospack.get_path('activity_recognition')
 
 
 def status(message):
-    gui.status.setText(message)
+    status_publisher.publish(message)
 
 def set_activity_status(activity):
-    gui.activity_label.setText(activity)
+    activity_publisher.publish(activity)
 
 
-def learn_model(samples, labels):
-    svm, kmeans = learn(samples, labels)
-    status("Model was learned from the samples")
-    return svm, kmeans
+def learn_model(req=False):
+    global svm, kmeans    
+    if(len(samples) < 2):
+        status("Too few samples for learning")
+    else:
+        svm, kmeans = learn(samples, labels)
+        status("Model learned")
 
-def save_model(svm, means):
+    return std_srvs.srv.EmptyResponse()
+
+def save_model(req=False):
+    global svm, means
     pickle.dump(svm, open(path+'/resources/svm.pkl', 'wb'))
     pickle.dump(kmeans, open(path+'/resources/kmeans.pkl', 'wb'))
     status("Model saved")
+    return std_srvs.srv.EmptyResponse()
 
 
-def load_model():
+
+def load_model(req=False):
+    global svm, kmeans
     svm = pickle.load(open(path+'/resources/svm.pkl', 'rb'))
     kmeans = pickle.load(open(path+'/resources/kmeans.pkl', 'rb'))
     status("Model loaded")
-    return svm, kmeans
+    return std_srvs.srv.EmptyResponse()
 
 
-def save_samples(samples, labels):
+def save_samples(req=False):
+    global samples, labels
     pickle.dump(samples, open(path+'/resources/samples.pkl', 'wb'))
     pickle.dump(labels, open(path+'/resources/labels.pkl', 'wb'))
     status("Samples saved")
+    return std_srvs.srv.EmptyResponse()
 
 
-def load_samples():
+def load_samples(req=False):
+    global samples, labels
     samples = pickle.load(open(path+'/resources/samples.pkl', 'rb'))
     labels = pickle.load(open(path+'/resources/labels.pkl', 'rb'))
     status("Samples loaded")
-    return samples, labels
+    return std_srvs.srv.EmptyResponse()
+
+def set_recognition(value):
+    global recognition, lock
+    with lock:
+        recognition = value
+    return std_srvs.srv.EmptyResponse()
+
+def start_recognition(req=False):
+    set_recognition(True)
+    status("Recognition started...")
+
+
+def stop_recognition(req=False):
+    set_recognition(False)
+    status("Recognition stopped...")
+    return std_srvs.srv.EmptyResponse
 
 
 def recognize (): 
@@ -119,6 +149,9 @@ def recognize ():
             set_activity_status(label_to_class(predict(svm, kmeans, features)))
 
 
+
+def get_classes(req=False):
+    return activity_recognition.srv.ClassesResponse(class_labels)
 
 # 1 -> HEAD
 # 2 -> NECK
@@ -154,12 +187,30 @@ def callback(pose):
 
     with lock:
         if recognition:
-            poses.append(pose.data)
-
+            poses.append(pose.data
+)
     with recording_lock:
         if recording:
             record.append(pose.data)
 
+
+def start_recording(req=True):
+    global recording_lock, recording
+    with recording_lock:
+        recording = True 
+        status("Activity recording started...")
+
+
+def stop_recording(req):
+    global recording_lock, recording
+    with recording_lock:
+        recording = False
+        label = req.class_label
+        if label >= 0:
+            save_record(label)
+            status("Activity record was added to the samples")
+        else:
+            status("Activity recording was canceled")
 
 
 def save_record(label):
@@ -170,217 +221,33 @@ def save_record(label):
 
 
 
-
-
-
-
-
-
-
-        
-
-from python_qt_binding.QtGui import *
-from python_qt_binding.QtCore import *
-
-
-import rviz
-
-class RecognitionGUI(QWidget):
-
-    def __init__(self):
-        QWidget.__init__(self)
-
-        self.frame = rviz.VisualizationFrame()
-
-        self.frame.setSplashPath( "" )
-
-        self.frame.initialize()
-
-        reader = rviz.YamlConfigReader()
-        config = rviz.Config()
-        reader.readFile( config, "config.rviz" )
-        self.frame.load( config )
-
-        self.setWindowTitle( config.mapGetChild( "Title" ).getValue() )
-
-        # self.frame.setMenuBar( None )
-        # self.frame.setStatusBar( None )
-        # self.frame.setHideButtonVisibility( False )
-
-        self.manager = self.frame.getManager()
-
-        self.grid_display = self.manager.getRootDisplayGroup().getDisplayAt( 0 )
-        
-        layout = QVBoxLayout()
-        layout.addWidget( self.frame )
-        
-        # thickness_slider = QSlider( Qt.Horizontal )
-        # thickness_slider.setTracking( True )
-        # thickness_slider.setMinimum( 1 )
-        # thickness_slider.setMaximum( 1000 )
-        # thickness_slider.valueChanged.connect( self.onThicknessSliderChanged )
-        # layout.addWidget( thickness_slider )
-
-
-        label = QLabel("Status")
-        self.status = label
-        layout.addWidget(label)
-
-        activity_label = QLabel("")
-        font = QFont()
-        font.setPointSize(26)
-        font.setBold(True)
-        font.setWeight(50)
-        activity_label.setFont(font)
-        activity_label.setVisible(False)
-        self.activity_label = activity_label
-        layout.addWidget(activity_label)
-
-        
-        h_layout = QHBoxLayout()
-        
-        save_model_button = QPushButton( "Save Model" )
-        save_model_button.clicked.connect( self.onSaveModelClick )
-        h_layout.addWidget(save_model_button)
-        
-        load_model_button = QPushButton( "Load Model" )
-        load_model_button.clicked.connect( self.onLoadModelClick )
-        h_layout.addWidget(load_model_button)
-
-        layout.addLayout(h_layout)
-
-
-        h2_layout = QHBoxLayout()
-        
-        save_samples_button = QPushButton( "Save Samples" )
-        save_samples_button.clicked.connect( self.onSaveSamplesClick )
-        h2_layout.addWidget( save_samples_button )
-        
-        load_samples_button = QPushButton( "Load Samples" )
-        load_samples_button.clicked.connect( self.onLoadSamplesClick )
-        h2_layout.addWidget( load_samples_button )
-
-        layout.addLayout(h2_layout)
-
-
-
-        command_layout = QHBoxLayout()
-        
-        recognition_button = QPushButton( "Start Recognition" )
-        recognition_button.clicked.connect( self.onRecognitionClick )
-        self.recognition_button = recognition_button
-        command_layout.addWidget(recognition_button)
-        
-        recording_button = QPushButton( "Start Recording" )
-        recording_button.clicked.connect( self.onRecordingClick )
-        self.recording_button = recording_button
-        command_layout.addWidget(recording_button)
-
-        layout.addLayout(command_layout)
-
-        learn_model_button = QPushButton( "Learn Model from samples" )
-        learn_model_button.clicked.connect( self.onLearnModelClick )
-        layout.addWidget(learn_model_button)
-
-        
-        
-        self.setLayout(layout)
-
-    def onThicknessSliderChanged( self, new_value ):
-        if self.grid_display != None:
-            self.grid_display.subProp( "Line Style" ).subProp( "Line Width" ).setValue( new_value / 1000.0 )
-            self.label.setText(str(new_value))
-
-    def onLoadModelClick( self ):
-        global svm, kmeans
-        svm, kmeans = load_model()
-
-    def onSaveModelClick( self ):
-        global svm, kmeans
-        save_model(svm, kmeans)
-
-    def onLoadSamplesClick( self ):
-        global samples, labels
-        samples, labels = load_samples()
-
-    def onSaveSamplesClick( self ):
-        global samples, labels
-        save_samples(samples, labels)
-
-
-    def get_class_label(self):
-        items = copy.copy(class_labels)
-  
-        item, ok = QInputDialog.getItem(self, "QInputDialog.getItem()",
-                "Activity:", items, 0, False)
-        if ok and item:
-            return items.index(item)
-        else:
-            return -1
-
-
-
-    def onRecognitionClick( self ):
-        global lock, recognition
-        with lock:
-            if self.recognition_button.text() == 'Start Recognition':
-                self.recognition_button.setText('Stop Recognition')
-                recognition = True
-                status("Recognition started...")
-                self.activity_label.setVisible(True)
-            else:
-                self.recognition_button.setText('Start Recognition')
-                recognition = False
-                status("Recognition stopped...")
-                self.activity_label.setVisible(False)
-
-
-    def onRecordingClick( self ):
-        global recording_lock, recording
-        with recording_lock:
-            if self.recording_button.text() == 'Start Recording':
-                self.recording_button.setText('Stop Recording')
-                recording = True
-                status("Activity recording started...")
-            else:
-                self.recording_button.setText('Start Recording')
-                recording = False
-                label = self.get_class_label()
-                if label >= 0:
-                    save_record(label)
-                    status("Activity record was added to the samples")
-                else:
-                    status("Activity recording was canceled")
-        
-                
-    def onLearnModelClick(self):
-        global svm, kmeans, samples, labels
-        if(len(samples) < 2):
-            status("Too few samples for learning")
-        else:
-            svm, kmeans = learn_model(samples, labels)
-            status("Model learned")
-
-             
-        
-
 if __name__ == '__main__':
 
     rospy.init_node('activity_recognition')
     rospy.Subscriber("/openni_tracker/pose", Int32MultiArray, callback)
 
+    ## status and activity messages
+    status_publisher = rospy.Publisher("~status", String)
+    activity_publisher = rospy.Publisher("~activity", String)
+
+    ## Services
+    rospy.Service('~load_model', std_srvs.srv.Empty, load_model)
+    rospy.Service('~save_model', std_srvs.srv.Empty, save_model)
+    rospy.Service('~load_samples', std_srvs.srv.Empty, load_samples)
+    rospy.Service('~save_samples', std_srvs.srv.Empty, save_samples)
+
+    rospy.Service('~learn_model', std_srvs.srv.Empty, learn_model)
+
+    rospy.Service('~start_recognition', std_srvs.srv.Empty, start_recognition)
+    rospy.Service('~stop_recognition', std_srvs.srv.Empty, stop_recognition)
+    rospy.Service('~start_recording', std_srvs.srv.Empty, start_recording)
+    rospy.Service('~stop_recording', activity_recognition.srv.Recording, stop_recording)
+
+    rospy.Service('~get_classes', activity_recognition.srv.Classes, get_classes)
+
+
+
+    load_model()
 
     recognize()
-    # rospy.spin()
-
-    app = QApplication( sys.argv )
-
-    gui = RecognitionGUI()
-    gui.resize( 500, 500 )
-    gui.show()
-
-    svm, kmeans = load_model()
-
-
-    app.exec_()
-
+    rospy.spin()
