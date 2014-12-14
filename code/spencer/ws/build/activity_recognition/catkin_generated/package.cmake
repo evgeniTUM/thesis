@@ -1,7 +1,0 @@
-set(_CATKIN_CURRENT_PACKAGE "activity_recognition")
-set(activity_recognition_MAINTAINER "evgeni <evgeni@todo.todo>")
-set(activity_recognition_DEPRECATED "")
-set(activity_recognition_VERSION "0.0.0")
-set(activity_recognition_BUILD_DEPENDS "roscpp" "rospy" "std_msgs" "tf")
-set(activity_recognition_RUN_DEPENDS "roscpp" "rospy" "std_msgs" "tf")
-set(activity_recognition_BUILDTOOL_DEPENDS "catkin")

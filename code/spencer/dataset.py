@@ -78,9 +78,7 @@ def class_to_label(c):
 
   
 def label_to_class(l):
-  for activity, label in class_labels.iteritems():
-    if label == l:
-        return activity
+  return class_labels.index(l)
 
 
 default_data_dir=os.getenv("HOME")+'/data/human_activities'

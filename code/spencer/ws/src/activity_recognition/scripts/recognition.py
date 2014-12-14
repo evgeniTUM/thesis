@@ -148,7 +148,7 @@ def recognize ():
             # ax.scatter(d[:,0], d[:,1], d[:,2])
 
             features = convert_to_features(np.vstack(data))
-            set_activity_status(label_to_class(predict(svm, kmeans, features)))
+            set_activity_status(class_to_label(predict(svm, kmeans, features)))
 
 
 

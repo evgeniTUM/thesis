@@ -1,0 +1,321 @@
+#+TITLE:     Online Activity Recognition through Kernel Methods
+#+AUTHOR:    Evgeni Pavlidis \newline \newline Advisor: Dr. Rudolph Triebel \newline Supervisor: Prof. Dr. Daniel Cremers
+#+EMAIL:     Evgeni.Pavlidis@gmail.com
+#+DATE:      2014-12-05
+#+OPTIONS: H:3
+
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [presentation]
+#+BEAMER_THEME: Madrid
+#+COLUMNS: %45ITEM %10BEAMER_ENV(Env) %10BEAMER_ACT(Act) %4BEAMER_COL(Col) %8BEAMER_OPT(Opt)
+#+TOC: t
+
+
+#+BIBLIOGRAPHY: bibliography2 plain limit:t
+
+
+# --- Packages
+#
+#+LaTeX_HEADER: \usepackage{pifont}
+#+LaTeX_HEADER: \usepackage{rotating}
+#+LaTeX_HEADER: \usepackage{float}
+#+LaTeX_HEADER: \usepackage[utf8]{inputenc}
+#+LaTeX_HEADER: \usepackage{marvosym}
+
+#+LaTeX_HEADER: \usepackage{amsmath}
+#+LaTeX_HEADER: \usepackage{amsfonts}
+#+LaTeX_HEADER: \usepackage{amssymb}
+#+LaTeX_HEADER: \usepackage{bm}
+#+LaTeX_HEADER: \usepackage{bibentry}
+
+
+#+BEGIN_LATEX
+\nobibliography*
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+#+END_LATEX
+
+* Introduction
+** Motivation
+*** The Spencer Project
+
+#+Caption: The final design of the SPENCER robot and its sensors.
+#+Label: fig:spencer-robot
+[[file:figures/finalconcept1.jpg]]
+
+** Problem Statement
+*** Problem statement
+Devise an algorithm which:
+- can classify activities by pose sequences
+- is capable of online recognition
+- does not need large amount of training data
+- can be integrated easily into ROS
+
+#+BEAMER: \pause
+
+Difficulties
+**** Pose space is high dimensional
+How to compare poses?
+**** Classification of time-series data
+How to classify sequences?
+
+*** Benchmark
+The Cornell Daily Living Activities Dataset (CAD-60) ebib:sung_human_2011 is used for evaluation
+- Consists of 4 persons (one left handed)
+- Each person performs 12 activities several times
+- The activities are:
+  rinsing mouth, brushing teeth, wearing contact lens, talking on the phone, drinking water, opening pill container, cooking (chopping), cooking (stirring), talking on couch, relaxing on couch, writing on whiteboard, working on computer
+- The data consists of:
+RGB images, depth images, poses (as extracted by the OpenNI framework)
+
+
+
+** Gaussian Process - Latent Variable Model
+*** Gaussian Process - Latent Variable Model
+Gaussian Process - Latent Variable Model
+#+LATEX: \footnote{\bibentry{lawrence_gaussian_2003}}
+
+- A model for non-linear dimensionality reduction
+- Defines a mapping from latent space to observed space
+- Gives us a notion of certainty for the mapping
+
+*** Dual Probabilistic Principal Components Analysis
+$$ \bm{y}_i = W \bm{x}_i + n_i $$
+$$ n_i \sim \mathcal{N}(0, \sigma^2 I) $$
+$$ p(Y|X,W) = \prod_{i=1}^n \mathcal{N}(\bm{y}_i| W \bm{x}_i, \sigma^2 I)  $$ 
+
+\begin{columns}[c] 
+\column{.5\textwidth} % column designated by a command
+\textbf{Probabilistic PCA}
+
+$$ p(X) = \prod_{i=1}^n \mathcal{N}(\bm{x}_i| 0, I) $$
+
+With these priors we can integrate out the latent points:
+$$ p(Y|W) = \prod_{i=1}^n \mathcal{N}(\bm{y}_i| 0, W W^T + \sigma^2 I)  $$
+\column{.5\textwidth}
+
+\pause
+
+\textbf{Dual Probabilistic PCA}
+
+
+$$ P(W) = \prod_{i=1}^d \mathcal{N}(\bm{w}_i|0,\bm{I}) $$
+
+With these priors we can integrate out the parameters:
+$$ p(Y|X) = \prod_{i=1}^d \mathcal{N}(\bm{y}_i| 0, X X^T + \sigma^2 I)  $$
+
+\end{columns}
+
+*** Gaussian Process - Latent Variable Model
+
+We can interpret:
+$X X^T + \sigma^2 I = K$.
+as a linear kernel, leading to:
+
+$$ P(Y|X) = \prod_{i=1}^d \mathcal{N}(\bm{y}_i|0, K) $$
+
+\textbf{Thus the Dual PPCA can be interpreted as product of GPs with a linear kernel.}
+
+\pause
+
+The log-likelihood is:
+$$ log\, p(Y|X) \propto -\frac{d}{2}\log{(|K|)} - \frac{1}{2} tr(K^{-1} Y Y^T)  $$
+
+where the covariance $K$ depends on the latent points $X$ and the hyper-parameters $\theta$.
+
+*** Back Constrained GP-LVM
+
+Back-constraints
+#+LATEX: \footnote{\bibentry{lawrence_local_2006}}
+
+Instead of optimizing the latent space directly, optimize the parameters of a mapping instead:
+
+$$ x_{i,j} = g_j(\bm{y}_i, \bm{\gamma}) $$
+
+$$ g_j(\bm{y}_n, A, l, \sigma) = \sum_{i=1}^n A_{j,i} k(\bm{y}_n, \bm{y}_i) $$
+
+Advantages:
+- Gives us an inverse mapping (observed to latent space)
+- Local distances are preserved
+
+* Approaches
+** k-Means
+*** Daily Living Activity Recognition
+
+RGB-D Camera-based Daily Living Activity Recognition.
+#+LATEX: \footnote{\bibentry{zhang_rgb-d_2012}}
+**** Feature extraction
+A feature (pose) consists of:
+- a structural part (the differences between each joint pair)
+- a motion part (the difference between current and previous frame for each joint)
+**** Method
+- Find the most representative poses from all data (k-Means algorithm)
+- Quantize each sequence using these representative poses (nearest neighbor)
+- Compute a distribution for each sequence (Bag-of-features)
+- Learn a linear SVM on the distributions
+
+*** Illustration
+#+Caption: Illustration of the k-Means clustering and bag-of-features approach for activity recognition.
+#+Label: fig:bof-approach
+[[file:figures/bof-approach.eps]]
+
+*** Extensions:
+- Extract representative poses for each class
+- Use sequence alignment functions for classification
+  - Longest Common Subsequence
+  - Dynamic Time Warping
+    
+*** Results
+#+Caption: Bag-of-features approach with 128 clusters. precision 84%, recall 84%
+#+ATTR_LATEX: :width 9.3cm
+#+Label: fig:cm-bof
+[[file:figures/cm-bof-128.eps]]
+
+*** k-Means with Longest Common Subsequence
+#+Caption: LCS approach with 64 clusters per class. precision 90%, recall 88%
+#+Label: fig:cm-lcs-64
+#+ATTR_LATEX: :width 8.5cm
+[[file:figures/cm-lcs-64.eps]]
+
+*** Issues
+Very difficult to adjust the algorithm to perform online recognition.
+
+** Discriminate Sequence Back-constrained GP-LVM
+*** Discriminate Sequence Back-Constrained GP-LVM
+
+Discriminative Sequence Back-constrained GP-LVM
+#+LATEX: \footnote{\bibentry{ntouskos_discriminative_2013}}
+
+- Perform GP-LVM based dimensionality reduction on all poses
+- Recognition is done by classifying the centroid of a sequence in latent space (linear SVM)
+- Make sure that similar sequences fall nearby in latent space (Sequence back-constraints)
+- Learn a mapping which can map a sequence from the observed space to a centroid in the latent space (Sequence back-constraints)
+- Make the clustering in the latent space more discriminative for the classes (Discriminative GP-LVM)
+
+*** Illustration
+#+Caption: Illustration of the "Discriminative sequence back-constrained GP-LVM" approach.
+#+Label: fig:discr-seq-approach
+[[file:figures/discr-seq-approach.eps]]
+
+*** Issues
+- Due to the nature of more complex activities and the huge search space, the optimization of the GP-LVM failed
+- This can also be due to the DTW measure in the sequence alignment kernel, which does not represent an appropriate similarity measure for more complex activities
+
+** Gaussian Process - Latent Motion Field
+*** Gaussian Process - Latent Variable Model
+Inspired by: Gaussian Process Regression Flow 
+#+LATEX: \footnote{\bibentry{kim_gaussian_2011}}
+
+- Perform a separate dimensionality reduction for each activity class
+- Learn a motion flow field by GP regression on the velocity function
+- Online recognition by comparing the incoming motion with each flow field and updating the belief
+
+*** Latent Motion
+#+Caption: Two dimensional latent space representation of the "walking" sequence using GPy plot. The white area around the sample points represents the variance. MOCAP, subject 35, sequence 1.
+#+Label: fig:flow-plain
+[[file:figures/gplmf-plain.eps]]
+
+*** Latent Motion - velocities
+#+Caption: The calculated velocity (red) for each latent point. MOCAP, subject 35, sequence 1.
+#+Label: fig:flow-path
+[[file:figures/gplmf-path.eps]]
+
+*** Latent Motion Flow Field
+#+Caption: The learned flow field (yellow) from the velocities.  lenthscale = 1, MOCAP, subject 35, sequence 1.
+#+Label: fig:flow-field
+[[file:figures/gplmf-flow.eps]]
+
+*** Illustration
+#+Caption: Illustration of the Gaussian Process - Latent Motion Flow approach.
+#+Label: fig:gp-lmf-approach
+#+ATTR_LATEX: :width 9cm
+[[file:figures/gp-lmf-approach.eps]]
+
+*** Issues
+- No smooth mapping from observed space to latent space
+- This leads to discontinuities when learning the regression
+- Possible solution:
+  - Use spatio-temporal constraints in the optimization 
+    #+LATEX: \footnote{\bibentry{lewandowski_probabilistic_2011}}
+
+* Conclusions & Outlook
+** Conclusions
+*** Conclusions
+ - Local motion tendencies are more discriminative for complex activities then the overall dynamics
+ - Common dimensionality reduction for a large number of activities is extremely difficult
+ - Optimization of the /GP-LVM/ is very difficult and strongly depends on the initialization
+
+*** Contributions
+ - Implementation and extensions of an existing k-Means based approach in Python
+ - Implementation of a /ROS/ module capable of activity recognition in real-time
+ - Implementation of a GUI client used to record, label and learn a model for new activities
+ - Implementation of the Discriminative Sequence Back-constraint GP-LVM in Python 
+ - A novel approach for activity recognition using latent motion flow fields
+
+** Outlook
+*** Outlook
+**** Implementation of the GP-Latent Motion Field using spatio-temporal GP-LVM
+Use constraints based on Laplacian matrices for temporal and spatial graphs extracted from the time series
+
+**** Semi-supervised activity learning by automatic segmentation of activities 
+Use the variances from the GP-LVM and the GP regression to identify unseen poses and motions
+
+*** Thank you
+  :PROPERTIES:
+  :BEAMER_OPT: plain,c
+  :END:      
+
+#+BEGIN_LaTeX
+\begin{center}
+\Huge Thank you for your attention!
+\end{center}
+
+#+END_LaTeX
+
+*** BoF Approach with subsequences
+#+Caption: Confusion matrix: BoF approach with 128 clusters and intervals of 100 frames. Randomly sampled 50 times. precision 88%, recall 88%
+#+Label: fig:cm-bof-partial
+#+ATTR_LATEX: :width 9.5cm
+[[file:figures/cm-bof-partial.eps]]
+
+
+*** Sequence Back-constraints
+Define a similarity measure between sequences in observed space:
+
+$$ g_{q}(Y_s) = \sum_{m=1}^{S} a_{mq} k(Y_s,Y_m) $$
+
+where the kernel is $k(Y_s, Y_m) = \gamma e^{\text{DTW}(Y_s, Y_m)}$. 
+
+This measure is to be preserved in the latent spaces.
+$$ g_q(Y_s) = \mu_{sq} = \frac{1}{L_s} \sum_{n \in J_s} x_{nq} $$
+
+
+*** Discriminative GP-LVM
+Discriminative GP-LVM 
+#+LATEX: \footnote{\bibentry{urtasun_discriminative_2007}}
+
+Make the latent space more discriminative by minimizing inner-class variance and maximizing inter-class separability.
+
+- The distance between classes
+$$ S_b = \sum_{i = 1}^l \frac{n_i}{n} (\bm{\mu_i} - \bm{\mu}) (\bm{\mu_i} - \bm{\mu})^T $$
+ 
+- The variance within the classes
+$$ S_w = \frac{1}{n} \sum_{i = 1}^l \sum_{j = 1}^{n_i} \frac{n_i}{n} (\bm{x_{i,j}} - \bm{\mu_i}) (\bm{x_{i,j}} - \bm{\mu_i})^T   $$
+
+$$ J(X) = tr(S_w^{-1} S_b) $$
+
+*** References
+  :PROPERTIES:
+  :BEAMER_OPT: fragile,allowframebreaks 
+  :END:      
+#+begin_latex
+\bibliographystyle{plain}
+\bibliography{bibliography2}
+#+end_latex
+

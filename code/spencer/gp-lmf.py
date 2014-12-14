@@ -13,7 +13,7 @@ from dataset import DatasetPerson
 class GPLMF(BCGPLVM):
     """
     Gaussian Process - Latent Motion Flow
-    Activity modeling by sparse motion flow model in latent space.
+    Activity modeling by sparse motion flow in latent space.
 
 
     :param Y: observed data

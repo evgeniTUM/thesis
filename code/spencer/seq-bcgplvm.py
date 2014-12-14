@@ -43,10 +43,10 @@ class SeqConstraints(Mapping):
 
     def randomize(self):
         self.Lambda = np.random.randn(self.seq_num, self.output_dim) \
-            / np.sqrt(self.seq_num+1)
+                      / np.sqrt(self.seq_num+1)
 
         self.A = np.random.randn(self.seq_num, self.output_dim) \
-            / np.sqrt(self.seq_num+1)
+                 / np.sqrt(self.seq_num+1)
 
     def g(self, current_sequence, q):
         return sum([self.A[s, q] * math.exp(-self.K[current_sequence, s])
@@ -67,7 +67,7 @@ class SeqConstraints(Mapping):
 
     def df_dA(self):
         return [[self.Lambda[s, q] * sum([math.exp(-self.K[s, j])
-                                         for j in range(self.seq_num)])
+                                          for j in range(self.seq_num)])
                  for q in range(self.output_dim)]
                 for s in range(self.seq_num)]
 
@@ -148,12 +148,12 @@ class SeqBCGPLVM(SparseGPLVM):
 
     def DDlog_prior(self):
         return (1.0/self.sigma**2) * self.prior.lnpdf(self.X) 
-        
+    
     
     def DD_log_prior_gradients(self):
         return (1.0/self.sigma**2) * np.hstack((self.prior.lnpdf_grad(self.X), 
                                                 np.zeros(self._get_params().size - self.X.size))) 
-            
+    
 
 
 _data_ = None
@@ -166,12 +166,12 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
     data = []
     seq_index = [0]
     index = 0
-# walk sequences
+    # walk sequences
     for i in range(2):
         data.append(GPy.util.datasets.cmu_mocap('35', ['0' + str(i+1)]))
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
-    seq_index.append(index)
+        seq_index.append(index)
 
     # jump sequences
     for i in range(2,4):
@@ -179,7 +179,7 @@ def createModel(sigma=0.5, init='PCA', lengthscale=1.0):
         data[i]['Y'][:, 0:3] = 0.0
         index += data[i]['Y'].shape[0]
         seq_index.append()
-    class_index.append(index)
+        class_index.append(index)
 
 # # boxing
 #     for i in range(5,7):
@@ -208,7 +208,7 @@ def create_human_activity_model(sigma=0.5, init='PCA'):
         data.append(sequence)
         index += sequence.shape[0]
         seq_index.append(index)
-    class_index.append(index)
+        class_index.append(index)
 
     for activity in ['0512165243', '0512165327']:
         data_set.load_activity(activity)
@@ -216,7 +216,7 @@ def create_human_activity_model(sigma=0.5, init='PCA'):
         data.append(sequence)
         index += sequence.shape[0]
         seq_index.append(index)
-    class_index.append(index)
+        class_index.append(index)
 
     print seq_index
     print class_index
@@ -225,7 +225,7 @@ def create_human_activity_model(sigma=0.5, init='PCA'):
 
     _data_ = data
     return m
-    
+
 
 
 
